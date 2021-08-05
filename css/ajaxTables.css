@@ -1,0 +1,122 @@
+/* Scrollable Table */
+div.table-scrollable {
+  margin-top: 2.67em;
+}
+
+div.table-scrollable > table {
+  margin-bottom: 0;
+}
+
+div.table-scrollable caption {
+  position: sticky;
+  top: 0;
+  margin: 0;
+}
+
+div.table-scrollable thead tr th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: #fff;
+  box-shadow: 0px 1px #ddd;
+}
+
+div.table-scrollable caption + thead tr th {
+  position: sticky;
+  top: 50px;
+  z-index: 2;
+  background-color: #fff;
+  box-shadow: 0px 1px #ddd;
+}
+
+div.table-scrollable tfoot tr th {
+  position: sticky;
+  bottom: 0px;
+  z-index: 2;
+  background-color: #fff;
+  box-shadow: 0px -1px #ddd;
+}
+
+/* AjaxTable */
+table[data-ajax] {
+  width: 100%;
+}
+
+table[data-ajax] caption {
+  display: table-caption;
+  font-size: 2em; 
+  margin-top: 0.67em;
+  margin-bottom: 0.67em;
+  margin-left: 0; 
+  margin-right: 0; 
+  font-weight: bold;
+  background-color: rgb(255,255,255);
+}
+
+table[data-ajax].table-scrollable > caption + thead tr th[data-column] {
+  position: sticky;
+  top: 82px;
+}
+
+table[data-ajax] thead tr th[data-column] {
+  /*Width of the sort buttons at top of the column*/
+  min-width: 60px;
+  vertical-align: top;
+}
+table[data-ajax] thead tr th[data-column]:nth-child(1) {
+  /*Width of the collapse-expand button at bottom of the column*/
+  min-width: 8em;
+}
+table[data-ajax] thead tr th[data-column]:nth-child(2) {
+  /*With of the Total records display at bottom of the column*/
+  min-width: 10em;
+}
+
+table[data-ajax][data-slave="1"] thead tr th[data-column] {
+  min-width: unset;
+}
+
+table[data-ajax] thead tr th[data-column] .btn-primary {
+  color: rgb(0,0,0);
+  background-color: rgb(255,205,0);
+  border-color: rgb(255,255,255);
+}
+
+table[data-ajax] thead tr th span {
+  display: inline-block;
+}
+
+table[data-ajax] tr td {
+  padding: 2px 8px;
+}
+
+table[data-ajax] tbody tr[data-id].highlight {
+  background-color: rgb(255, 205, 0);
+}
+
+table[data-ajax] tbody tr {
+  cursor: pointer;
+}
+table[data-ajax] tbody tr td
+{
+ max-width: 0;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ white-space: nowrap;
+}
+*:focus:not(:focus-visible) {
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+.mb-0 {
+  margin-bottom: 0;
+}
+
+.table-hover>tbody>tr:hover {
+  background-color: #f5f5f5;
+}
+
+.table-hover>tbody>tr:focus {
+  background-color: red;
+}
