@@ -1,0 +1,106 @@
+.square {
+	position: relative;
+	width: 100%;
+	border: 4px solid rgba(255, 205, 0, 1);
+	/*height:488px;*/
+}
+
+.square::after {
+	content: "";
+	display: block;
+	padding-bottom: 70%;
+}
+
+.content {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+}
+
+.fullscreen {
+	position: relative;
+	width: 100%;
+	height: 100vh;
+}
+
+.fixed {
+	position: fixed;
+}
+
+/*
+#layout-jumbotron-full {
+    max-height: 100%;
+    overflow: hidden;
+}
+*/
+
+.marker-cluster-small {
+	background-color: rgba(224, 224, 224, 0.6);
+}
+.marker-cluster-small div {
+	background-color: rgba(255, 255, 255, 0.6);
+}
+
+.marker-cluster-medium {
+	background-color: rgba(224, 224, 224, 0.6);
+}
+.marker-cluster-medium div {
+	background-color: rgba(255, 255, 255, 0.6);
+}
+
+.marker-cluster-large {
+	background-color: rgba(224, 224, 224, 0.6);
+}
+.marker-cluster-large div {
+	background-color: rgba(255, 255, 255, 0.6);
+}
+
+.marker-cluster-xl {
+	background-color: rgba(224, 224, 224, 0.6);
+}
+.marker-cluster-xl div {
+	background-color: rgba(255, 255, 255, 0.6);
+}
+
+.marker-cluster-xxl {
+	background-color: rgba(224, 224, 224, 0.6);
+}
+.marker-cluster-xxl div {
+	background-color: rgba(255, 255, 255, 0.6);
+}
+
+.marker-cluster {
+	background-clip: padding-box;
+	border-radius: 20px;
+}
+.marker-cluster div {
+	width: 30px;
+	height: 30px;
+	margin-left: 5px;
+	margin-top: 5px;
+
+	text-align: center;
+	border-radius: 15px;
+	font: 12px "Helvetica Neue", Arial, Helvetica, sans-serif;
+}
+.marker-cluster span {
+	line-height: 30px;
+}
+
+.marker-cluster-xxl {
+	background-clip: padding-box;
+	border-radius: 40px;
+}
+.marker-cluster-xxl div {
+	width: 60px;
+	height: 60px;
+	margin-left: 10px;
+	margin-top: 10px;
+
+	text-align: center;
+	border-radius: 30px;
+	font: 12px "Helvetica Neue", Arial, Helvetica, sans-serif;
+}
+.marker-cluster-xxl span {
+	line-height: 60px;
+}
