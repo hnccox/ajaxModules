@@ -17,7 +17,9 @@ class ajaxMenu {
         element.dataset.key = index;
         element.setAttribute("id", "Menus[" + index + "]");
 
-        ajax(element, this.menuTabulate.bind(this));
+        if (!element.dataset.master) {
+			ajax(element, this.menuTabulate.bind(this));
+		}
     }
 
     get Dataset() {
@@ -29,7 +31,7 @@ class ajaxMenu {
     }
 
     get Data() {
-        return this.data;
+        return JSON.parse(this.data);
     }
 
     menuCallback(element) {
@@ -46,23 +48,26 @@ class ajaxMenu {
 
     menuTabulate(element, data) {
         console.log("menuTabulate");
-        // TO DO: Decouple function from data!
+
         let menu = element;
-        let obj = JSON.parse(data);
-        let { totalrecords, ...dataset } = obj;
+        let self = this;
+
+        const obj = JSON.parse(data);
+        const totalrecords = obj["totalrecords"];
+        delete obj.totalrecords;
 
         var node = document.createElement("UL");
         node.style.listStyleType = "none";
         menu.appendChild(node);
 
-        Object.keys(dataset).forEach(function (key) {
-            if (parseInt(dataset[key].id, 10) % 10 == 0) {
+        Object.keys(obj).forEach(function (key) {
+            if (parseInt(obj[key].id, 10) % 10 == 0) {
                 menu.lastElementChild.appendChild(document.createElement("BR"));
                 var node = document.createElement("LI");
-                var textnode = document.createTextNode(dataset[key].displayname);
+                var textnode = document.createTextNode(obj[key].displayname);
                 node.appendChild(textnode);
                 node.style.fontSize = "2rem";
-                node.setAttribute("data-systemgrp", dataset[key].id);
+                node.setAttribute("data-systemgrp", obj[key].id);
                 node.onclick = function (e) {
                     e.stopPropagation();
                     var elements = this.closest('div[data-ajax="menu"]').querySelectorAll(".active");
@@ -73,23 +78,23 @@ class ajaxMenu {
                     let slaveTables = document.querySelectorAll('[data-ajax="table"]');
                     slaveTables.forEach((table, index) => {
                         let title = table.firstElementChild;
-                        title.innerHTML = dataset[key].displayname;
+                        title.innerHTML = obj[key].displayname;
                         table.dataset.offset = "0";
-                        table.dataset.where = "systemgrp BETWEEN " + dataset[key].id + " AND " + parseInt(dataset[key].id + 9, 10);
+                        table.dataset.where = "systemgrp BETWEEN " + obj[key].id + " AND " + parseInt(obj[key].id + 9, 10);
                         ajax(table, Tables[index].tableTabulate.bind(Tables[index]));
                     });
                 };
                 menu.lastElementChild.appendChild(node);
             } else {
-                if (parseInt(dataset[key].id, 10) % 10 == 1) {
+                if (parseInt(obj[key].id, 10) % 10 == 1) {
                     var node = document.createElement("UL");
                     menu.lastElementChild.lastElementChild.appendChild(node);
                 }
                 var node = document.createElement("LI");
-                var textnode = document.createTextNode(dataset[key].displayname);
+                var textnode = document.createTextNode(obj[key].displayname);
                 node.appendChild(textnode);
                 node.style.fontSize = "1.5rem";
-                node.setAttribute("data-systemgrp", dataset[key].id);
+                node.setAttribute("data-systemgrp", obj[key].id);
                 node.onclick = function (e) {
                     e.stopPropagation();
                     var elements = this.closest('div[data-ajax="menu"]').querySelectorAll(".active");
@@ -100,9 +105,9 @@ class ajaxMenu {
                     let slaveTables = document.querySelectorAll('[data-ajax="table"]');
                     slaveTables.forEach((table, index) => {
                         let title = table.firstElementChild;
-                        title.innerHTML = dataset[key].displayname;
+                        title.innerHTML = obj[key].displayname;
                         table.dataset.offset = "0";
-                        table.dataset.where = "systemgrp=" + dataset[key].id;
+                        table.dataset.where = "systemgrp=" + obj[key].id;
                         ajax(table, Tables[index].tableTabulate.bind(Tables[index]));
                     });
                 };

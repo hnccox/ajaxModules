@@ -32,18 +32,6 @@ class ajaxTable {
 			ajax(element, this.tableTabulate.bind(this));
 		}
 
-		if (element.dataset.limit) {
-			element.getElementsByClassName("currentpage")[0].addEventListener("keydown", function (event) {
-				// Number 13 is the "Enter" key on the keyboard
-				if (event.key === "Enter") {
-					// Cancel the default action, if needed
-					event.preventDefault();
-					// Trigger the function
-					Tables[index].tablePagination(element);
-				}
-			});
-		}
-
 	} // End of constructor
 
 	get Dataset() {
@@ -181,6 +169,7 @@ class ajaxTable {
 
 		const obj = JSON.parse(data);
 		const totalrecords = obj["totalrecords"];
+		delete obj.totalrecords;
 
 		// TODO: Sort object by property of object
 		let tbody = table.getElementsByTagName("tbody")[0];
@@ -192,7 +181,9 @@ class ajaxTable {
 		var rowcount = 0;
 		Object.keys(obj).forEach(function (k, v) {
 
-			if (k === "totalrecords") { return }
+			console.log(k, v);
+			console.log(obj[k][Object.keys(obj[k])[0]]);
+			
 			if (v === parseInt(table.dataset.preview, 10)) {
 				// Always show the first preview results (default 3), add new tbody after that
 				tbody.insertAdjacentElement('afterend', document.createElement('tbody'));
@@ -312,12 +303,7 @@ class ajaxTable {
 				row.insertCell(cellcount).innerText = obj[k][e];
 				cellcount++;
 			})
-			/*
-			Object.keys(obj[k]).forEach(key => {
-				row.insertCell(cellcount).innerText = obj[k][key];
-				cellcount++;
-			});
-			*/
+
 			rowcount++;
 
 		});
@@ -599,6 +585,15 @@ class ajaxTable {
 		span.classList.add("currentpage");
 		span.setAttribute("contenteditable", "true");
 		span.innerText = "1";
+		span.addEventListener("keydown", function (event) {
+			// Number 13 is the "Enter" key on the keyboard
+			if (event.key === "Enter") {
+				// Cancel the default action, if needed
+				event.preventDefault();
+				// Trigger the function
+				Tables[index].tablePagination(this);
+			}
+		});
 		li.appendChild(span);
 		ul.appendChild(li);
 		var li = document.createElement("li");

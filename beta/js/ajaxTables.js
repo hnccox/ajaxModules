@@ -6,7 +6,7 @@ import { default as storageHandler } from "/e107_plugins/storageHandler/js/stora
 class ajaxTable {
 	constructor(element, index, object = {}) {
 		console.log("ajaxTable constructor");
-		
+
 		for (const [key, value] of Object.entries(object)) {
 			this[key] = value;
 		}
@@ -15,7 +15,7 @@ class ajaxTable {
 		this.index = index;
 		this.rows = {};
 		this.selectedRows = {};
-		
+
 		element.dataset.index = index;
 		element.setAttribute("id", "Tables[" + index + "]");
 
@@ -29,7 +29,13 @@ class ajaxTable {
 		}
 
 		if (!element.dataset.master) {
-			ajax(element, this.tableTabulate.bind(this));
+			let method = "GET";
+			let sql = {
+				"url": element.dataset.url,
+				"db": element.dataset.db,
+				"query": JSON.parse(element.dataset.query)
+			}
+			ajax(method, sql, this.tableTabulate.bind(this));
 		}
 
 		if (element.dataset.limit) {
@@ -163,7 +169,7 @@ class ajaxTable {
 	tableCallback(element) {
 		console.log("tableCallback");
 
-		if(this._tableCallback.functions) {
+		if (this._tableCallback.functions) {
 			let callbacks = this._tableCallback.functions;
 			Object.keys(callbacks).forEach(function (value) {
 				callbacks[value](element);
@@ -172,15 +178,16 @@ class ajaxTable {
 
 	}
 
-	tableTabulate(element, data) {
+	tableTabulate(response) {
 		console.log("tableTabulate");
 
-		let table = element;
-		let tfoot = table.getElementsByClassName("table-footer")[0];
 		let self = this;
+		let table = this.element;
+		let tfoot = table.getElementsByClassName("table-footer")[0];
 
-		const obj = JSON.parse(data);
+		const obj = JSON.parse(response.data);
 		const totalrecords = obj["totalrecords"];
+		delete obj.totalrecords;
 
 		// TODO: Sort object by property of object
 		let tbody = table.getElementsByTagName("tbody")[0];
@@ -190,10 +197,8 @@ class ajaxTable {
 		});
 
 		var rowcount = 0;
-		Object.keys(obj).forEach(function (k, v) {
-
-			if (k === "totalrecords") { return }
-			if (v === parseInt(table.dataset.preview, 10)) {
+		Object.keys(obj).forEach(function (key) {
+			if (key === parseInt(table.dataset.preview, 10)) {
 				// Always show the first preview results (default 3), add new tbody after that
 				tbody.insertAdjacentElement('afterend', document.createElement('tbody'));
 				if (tbody.dataset.href == "1") {
@@ -216,12 +221,12 @@ class ajaxTable {
 
 			var row = tbody.insertRow(rowcount);
 			var cellcount = 0;
-			row.dataset.id = obj[k][Object.keys(obj[k])[0]];
+			row.dataset.id = obj[key][Object.keys(obj[key])[0]];
 			if (self.selectedRows[row.dataset.id]) {
 				row.style.backgroundColor = "rgb(255, 205, 0)";
 			}
 			if (tbody.dataset.href == "1") {
-				row.dataset.href = Object.keys(obj[k])[0] + ".php?" + Object.keys(obj[k])[0] + "=" + obj[k][Object.keys(obj[k])[0]];
+				row.dataset.href = Object.keys(obj[key])[0] + ".php?" + Object.keys(obj[key])[0] + "=" + obj[key][Object.keys(obj[key])[0]];
 			}
 
 			// TODO: If slave table, do not redirect to another page...
@@ -309,7 +314,7 @@ class ajaxTable {
 
 			// TODO: Only extract the data for which there are columns
 			table.dataset.columns.split(",").forEach((e) => {
-				row.insertCell(cellcount).innerText = obj[k][e];
+				row.insertCell(cellcount).innerText = obj[key][e];
 				cellcount++;
 			})
 			/*
@@ -324,7 +329,7 @@ class ajaxTable {
 
 		table.getElementsByClassName("currentpage")[0].innerText = parseInt(table.dataset.offset, 10) + 1;
 		table.dataset.totalrecords = totalrecords;
-		var limit = Object.keys(obj).length - 1;
+		var limit = Object.keys(obj).length || 0;
 		switch (table.dataset.type) {
 			case "slave":
 				table.getElementsByClassName("totalrecords")[0].innerText = "Records listed: " + limit;
@@ -388,8 +393,8 @@ class ajaxTable {
 				table.getElementsByTagName("nav")[0].getElementsByTagName("ul")[0].lastElementChild.classList.remove("disabled");
 		}
 
-		this.data = data;
-		this.tableCallback(element);
+		this.data = obj;
+		this.tableCallback(table);
 
 	}
 
@@ -1008,7 +1013,7 @@ class ajaxTable {
 		});
 
 	}
-	
+
 	tableLimit(element) {
 		//console.log("tableLimit");
 
@@ -1027,17 +1032,26 @@ class ajaxTable {
 			table.getElementsByTagName("nav")[0].getElementsByTagName("ul")[0].lastElementChild.classList.remove("disabled");
 			table.setAttribute("aria-expanded", true);
 
-			ajax(table, this.tableTabulate.bind(this));
+			let method = "GET";
+			let sql = {
+				"url": table.dataset.url,
+				"db": table.dataset.db,
+				"query": JSON.parse(table.dataset.query)
+			}
+			sql.query.limit = table.dataset.limit;
+			sql.query.offset = parseInt(table.dataset.offset, 10) * parseInt(table.dataset.limit, 10);
+			ajax(method, sql, this.tableTabulate.bind(this));
 		}
 
 	}
 
 	tablePagination(element) {
-		// console.log("tablePagination");
+		console.log("tablePagination");
 
 		let table = element.closest("table");
 		let currentpage = parseInt(table.dataset.offset, 10) + 1;
 		let totalpages = Math.ceil(parseInt(table.dataset.totalrecords, 10) / parseInt(table.dataset.limit, 10));
+		console.log("totalpages: " +totalpages);
 
 		if (totalpages == 1) { table.getElementsByClassName("currentpage")[0].innerText = totalpages; return; }
 
@@ -1047,7 +1061,7 @@ class ajaxTable {
 			table.dataset.offset = parseInt(table.dataset.offset, 10) - 1;
 		} else if (table.getElementsByClassName("currentpage")[0].innerText > totalpages) {
 			if (parseInt(table.dataset.offset, 10) + 1 !== totalpages) {
-				table.dataset.offset = parseInt(totalpages, 10) - 1 ;
+				table.dataset.offset = parseInt(totalpages, 10) - 1;
 			}
 			table.getElementsByClassName("currentpage")[0].innerText = totalpages;
 		} else if (table.getElementsByClassName("currentpage")[0].innerText < 1) {
@@ -1060,12 +1074,20 @@ class ajaxTable {
 		}
 
 		if (currentpage !== parseInt(table.dataset.offset, 10) + 1) {
-			ajax(table, this.tableTabulate.bind(this));
+			let method = "GET";
+			let sql = {
+				"url": table.dataset.url,
+				"db": table.dataset.db,
+				"query": JSON.parse(table.dataset.query)
+			}
+			sql.query.limit = table.dataset.limit;
+			sql.query.offset = parseInt(table.dataset.offset, 10) * parseInt(table.dataset.limit, 10);
+			ajax(method, sql, this.tableTabulate.bind(this));
 		}
 	}
 
 	tableSort(element) {
-		//console.log("tableSort");
+		console.log("tableSort");
 
 		let table = element.closest("table");
 		if (table.dataset.slave || table.dataset.slave == "1") {
@@ -1094,7 +1116,15 @@ class ajaxTable {
 			table.getElementsByClassName("currentpage")[0].innerText = parseInt(table.dataset.offset, 10) + 1;
 			table.getElementsByTagName("nav")[0].getElementsByTagName("ul")[0].lastElementChild.classList.remove("disabled");
 
-			ajax(table, this.tableTabulate.bind(this));
+			let method = "GET";
+			let sql = {
+				"url": table.dataset.url,
+				"db": table.dataset.db,
+				"query": JSON.parse(table.dataset.query)
+			}
+			sql.query.limit = table.dataset.limit;
+			sql.query.offset = parseInt(table.dataset.offset, 10) * parseInt(table.dataset.limit, 10);
+			ajax(method, sql, this.tableTabulate.bind(this));
 
 		}
 

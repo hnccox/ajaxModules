@@ -32,6 +32,7 @@ class ajaxMap {
         //this.callbacks = callbacks;
         this.element = element;
         this.index = index;
+        
         this.dataset = {};
         this.dataset.columns = element.dataset.columns;
         this.dataset.order_by = element.dataset.order_by;
@@ -186,42 +187,6 @@ class ajaxMap {
         var latlng = [52.3, 5.48, 0.2];
         heat.addLatLng(latlng);
         */
-        /*
-        var options = {
-            position: 'topleft',
-            draw: {
-                polyline: {
-                    shapeOptions: {
-                        color: '#f357a1',
-                        weight: 4
-                    }
-                },
-                polygon: {
-                    allowIntersection: false, // Restricts shapes to simple polygons
-                    drawError: {
-                        color: '#e1e100', // Color the shape will turn when intersects
-                        message: '<strong>Oh snap!<strong> you can\'t draw that!' // Message that will show when intersect
-                    },
-                    shapeOptions: {
-                        color: '#bada55'
-                    }
-                },
-                circle: true, // Turns off this drawing tool
-                rectangle: {
-                    shapeOptions: {
-                        clickable: false
-                    }
-                },
-                marker: {
-                    icon: icon
-                }
-            },
-            edit: {
-                featureGroup: drawnItems, //REQUIRED!!
-                remove: true
-            }
-        };
-        */
 
         var options = {
             position: 'topleft',
@@ -242,125 +207,6 @@ class ajaxMap {
                 remove: true
             }
         };
-
-        /*
-        L.drawLocal = {
-            // format: {
-            // 	numeric: {
-            // 		delimiters: {
-            // 			thousands: ',',
-            // 			decimal: '.'
-            // 		}
-            // 	}
-            // },
-            draw: {
-                toolbar: {
-                    // #TODO: this should be reorganized where actions are nested in actions
-                    // ex: actions.undo  or actions.cancel
-                    actions: {
-                        title: 'Cancel drawing',
-                        text: 'Cancel'
-                    },
-                    finish: {
-                        title: 'Finish drawing',
-                        text: 'Finish'
-                    },
-                    undo: {
-                        title: 'Delete last point drawn',
-                        text: 'Delete last point'
-                    },
-                    buttons: {
-                        polyline: 'Draw a polyline',
-                        polygon: 'Draw a polygon',
-                        rectangle: 'Draw a rectangle',
-                        circle: 'Draw a circle',
-                        marker: 'Draw a marker',
-                        circlemarker: 'Draw a circlemarker'
-                    }
-                },
-                handlers: {
-                    circle: {
-                        tooltip: {
-                            start: 'Click and drag to draw circle.'
-                        },
-                        radius: 'Radius'
-                    },
-                    circlemarker: {
-                        tooltip: {
-                            start: 'Click map to place circle marker.'
-                        }
-                    },
-                    marker: {
-                        tooltip: {
-                            start: 'Click map to place marker.'
-                        }
-                    },
-                    polygon: {
-                        tooltip: {
-                            start: 'Click to start drawing shape.',
-                            cont: 'Click to continue drawing shape.',
-                            end: 'Click first point to close this shape.'
-                        }
-                    },
-                    polyline: {
-                        error: '<strong>Error:</strong> shape edges cannot cross!',
-                        tooltip: {
-                            start: 'Click to start drawing line.',
-                            cont: 'Click to continue drawing line.',
-                            end: 'Click last point to finish line.'
-                        }
-                    },
-                    rectangle: {
-                        tooltip: {
-                            start: 'Click and drag to draw rectangle.'
-                        }
-                    },
-                    simpleshape: {
-                        tooltip: {
-                            end: 'Release mouse to finish drawing.'
-                        }
-                    }
-                }
-            },
-            edit: {
-                toolbar: {
-                    actions: {
-                        save: {
-                            title: 'Save changes',
-                            text: 'Save'
-                        },
-                        cancel: {
-                            title: 'Cancel editing, discards all changes',
-                            text: 'Cancel'
-                        },
-                        clearAll: {
-                            title: 'Clear all layers',
-                            text: 'Clear All'
-                        }
-                    },
-                    buttons: {
-                        edit: 'Edit layers',
-                        editDisabled: 'No layers to edit',
-                        remove: 'Delete layers',
-                        removeDisabled: 'No layers to delete'
-                    }
-                },
-                handlers: {
-                    edit: {
-                        tooltip: {
-                            text: 'Drag handles or markers to edit features.',
-                            subtext: 'Click cancel to undo changes.'
-                        }
-                    },
-                    remove: {
-                        tooltip: {
-                            text: 'Click on a feature to remove.'
-                        }
-                    }
-                }
-            }
-        };
-        */
 
         L.Polyline.include({
             contains: function () { return; }

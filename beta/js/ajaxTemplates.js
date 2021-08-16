@@ -1,3 +1,4 @@
+
 'use strict';
 
 import { default as ajax } from "/e107_plugins/ajaxDBQuery/beta/js/ajaxDBQuery.js";
@@ -11,20 +12,28 @@ class ajaxTemplate {
 			this[key] = value;
 		}
 
-        //this.callbacks = callbacks;
-        this.element = element;
-        this.index = index;
-        this.dataset = {};
-        this.dataset.columns = element.dataset.columns;
-        this.dataset.order_by = element.dataset.order_by;
-        this.dataset.where = element.dataset.where;
+		//this.callbacks = callbacks;
+		this.element = element;
+		this.index = index;
 
 		element.dataset.key = index;
 		element.setAttribute("id", "Templates[" + index + "]");
 
 		if (!element.dataset.master) {
-			ajax(element, this.templateTabulate.bind(this));
+			let method = "GET";
+			let sql = {
+				"url": element.dataset.url,
+				"db": element.dataset.db,
+				"query": JSON.parse(element.dataset.query)
+			}
+			ajax(method, sql, this.templateTabulate.bind(this));
+
 		}
+
+		this.dataset = {};
+		this.dataset.columns = element.dataset.columns;
+		this.dataset.order_by = element.dataset.order_by;
+		this.dataset.where = element.dataset.where;
 
 	}
 
@@ -80,7 +89,7 @@ class ajaxTemplate {
 		const click = () => {
 			//console.log(i);
 			this.selectedDetail = i;
-			
+
 			//element.dataset.columns = this.dataset.columns;
 			//element.dataset.order_by = this.dataset.order_by;
 			this.element.dataset.where = this.dataset.where;
@@ -88,7 +97,14 @@ class ajaxTemplate {
 			//element.dataset.order_by = element.dataset.order_by.replace(":lat", lat).replace(":lng", lng);
 			this.element.dataset.where = this.element.dataset.where.replace(":uid", i);
 
-			ajax(this.element, this.templateTabulate.bind(this));
+			let method = "GET";
+			let sql = {
+				"url": this.element.dataset.url,
+				"db": this.element.dataset.db,
+				"query": JSON.parse(this.element.dataset.query)
+			}
+
+			ajax(method, sql, this.templateTabulate.bind(this));
 			/*
 			let slaveTables = document.querySelectorAll('[data-ajax="table"][data-master="' + this.element.id + '"]');
 			slaveTables.forEach((table) => {
@@ -126,7 +142,29 @@ class ajaxTemplate {
 		let slaveTables = document.querySelectorAll('[data-ajax="table"][data-master="' + this.element.id + '"]');
 		slaveTables.forEach((table) => {
 			table.dataset.where = this.element.dataset.where;
-			ajax(table, Tables[table.dataset.index].tableTabulate.bind(Tables[table.dataset.index]));
+			let method = "GET";
+			let sql = {
+				"url": table.dataset.url,
+				"db": table.dataset.db,
+				"query": {
+					"select": {
+						"columns": {
+							0: table.dataset.columns
+						},
+						"from": {
+							"table": table.dataset.table
+						}
+					},
+					"where": table.dataset.where,
+					"order_by": {
+						"identifier": table.dataset.order_by,
+						"direction": table.dataset.direction
+					},
+					"limit": table.dataset.limit,
+					"offset": table.dataset.offset
+				}
+			};
+			ajax(method, sql, Tables[table.dataset.index].tableTabulate.bind(Tables[table.dataset.index]));
 		});
 
 		if (this._templateCallback.functions) {
@@ -137,43 +175,45 @@ class ajaxTemplate {
 		}
 	}
 
-	templateTabulate(element, data) {
+	templateTabulate(response) {
 		console.log("templateTabulate");
-		
-		this.data = data;
-        let self = this;
 
-		let obj = JSON.parse(data);
-		let totalrecords = obj["totalrecords"];  // Should always be "1"
-		let dataset = obj[0];
-		
-		Object.keys(dataset).forEach(function (key) {
+		let template = this.element;
+		let self = this;
+
+		const obj = JSON.parse(response.data);
+		const totalrecords = obj["totalrecords"];
+		delete obj.totalrecords;
+
+		Object.keys(obj[0]).forEach(function (key) {
+			
 			var NodeList = self.element.querySelectorAll('[data-variable="' + key + '"]');
 			NodeList.forEach(function (el) {
 				if (el.tagName == "INPUT") {
 					if (el.type == "date") {
-						var date = new Date(Date.parse(dataset[key]));
-						dataset[key] = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
+						var date = new Date(Date.parse(obj[0][key]));
+						obj[0][key] = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
 					}
-					el.value = dataset[key];
+					el.value = obj[0][key];
 				} else {
 					if (key == "drilldate") {
-						var date = new Date(Date.parse(dataset[key]));
-						dataset[key] = ('0' + date.getDate()).slice(-2) + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + date.getFullYear();
+						var date = new Date(Date.parse(obj[0][key]));
+						obj[0][key] = ('0' + date.getDate()).slice(-2) + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + date.getFullYear();
 					}
-					el.innerHTML = dataset[key];
+					el.innerHTML = obj[0][key];
 				}
 			});
+			
 		});
 
-		element.dataset.id = dataset[Object.keys(dataset)[0]];
+		template.dataset.id = obj[Object.keys(obj)[0]];
 
 		// TODO: undefined?
-		this.data = data;
-		this.templateCallback(element);
+		this.data = obj;
+		this.templateCallback(template);
 
 	}
-	
+
 }
 
 export default ajaxTemplate;
