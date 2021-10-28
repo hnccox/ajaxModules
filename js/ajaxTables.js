@@ -310,7 +310,7 @@ class ajaxTable {
 
 		table.getElementsByClassName("currentpage")[0].innerText = parseInt(table.dataset.offset, 10) + 1;
 		table.dataset.totalrecords = totalrecords;
-		var limit = Object.keys(obj).length - 1;
+		var limit = Object.keys(obj).length;
 		switch (table.dataset.type) {
 			case "slave":
 				table.getElementsByClassName("totalrecords")[0].innerText = "Records listed: " + limit;

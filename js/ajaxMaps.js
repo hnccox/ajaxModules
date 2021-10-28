@@ -147,11 +147,6 @@ class ajaxMap {
 
         });
 
-        // TODO: For each overlayMap
-        //overlayMaps.Boreholes.heat.addTo(map);
-        //overlayMaps['Boreholes']['heat'].addTo(map);
-        //overlayMaps['Boreholes']['markers'].addTo(map);
-
         let overlayGroups = {};
         overlayGroups["boreholes"] = L.layerGroup();
         if (map.getZoom() < parseInt(element.dataset.zoomlevel, 10)) {
@@ -159,9 +154,6 @@ class ajaxMap {
         }
         overlayMaps[Object.keys(overlayMaps)[0]]["markers"].addTo(overlayGroups["boreholes"])
         overlayGroups["boreholes"].addTo(map);
-
-        //overlayMaps[Object.keys(overlayMaps)[0]]["heat"].addTo(overlayGroups["boreholes"]);
-        //overlayMaps[Object.keys(overlayMaps)[0]]["markers"].addTo(overlayGroups["boreholes"]);
 
         L.control.layers(baseMaps, { "Boreholes": overlayGroups["boreholes"] }).addTo(map);
 

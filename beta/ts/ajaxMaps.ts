@@ -1,7 +1,7 @@
 
 'use strict';
 
-import { default as ajax } from "/e107_plugins/ajaxDBQuery/beta/js/ajaxDBQuery.js";
+import { default as ajax } from "/e107_plugins/ajaxDBQuery/js/ajaxDBQuery.js";
 import { default as storageHandler } from "/e107_plugins/storageHandler/js/storageHandler.js";
 
 proj4.defs([
@@ -39,35 +39,34 @@ class ajaxMap {
         this.dataset.where = element.dataset.where;
 
         element.dataset.key = index;
-        element.setAttribute("id", "ajaxMaps[" + index + "]");
+        element.setAttribute("id", "Maps[" + index + "]");
 
         let mbAttr = 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
         let mbUrl = 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiaG5jY294IiwiYSI6ImNrbTlxam8wdzE1N2gycGxhN3RiNHpmODkifQ.FQmxF3Bjsb8ElMnALjgO_A';
 
         let AHN3 = L.tileLayer.wms('https://geodata.nationaalgeoregister.nl/ahn3/wms', {
-            layers: "ahn3_05m_dsm",
-            format: "image/png",
-            version: "1.3.0",
+            layers: 'ahn3_05m_dsm',
+            format: 'image/png',
             transparent: true,
-            opacity: 0.5,
-            crs: L.CRS.EPSG4326,
-            attribution: "Map data &copy; <a href=\"https://www.pdok.nl/\">CC BY Kadaster</a>"
-        })
-        // let defaultParameters = {
-        //     service: 'WFS',
-        //     version: '2.0.0',
-        //     request: 'GetFeature',
-        //     typeName: 'acme:pand',
-        //     maxFeatures: 200,
-        //     outputFormat: 'application/json',
-        //     srsName:'EPSG:4326'
+        });
 
-        // };
+        let AHN3Attr = 'Map data &copy; <a href="https://www.pdok.nl/">CC BY Kadaster</a>'
+
+        let defaultParameters = {
+            service: 'WFS',
+            version: '2.0.0',
+            request: 'GetFeature',
+            typeName: 'acme:pand',
+            maxFeatures: 200,
+            outputFormat: 'application/json',
+            srsName:'EPSG:4326'
+
+        };
 
         let light = L.tileLayer(mbUrl, { id: 'mapbox/light-v9', tileSize: 512, zoomOffset: -1, attribution: mbAttr }),
             dark = L.tileLayer(mbUrl, { id: 'mapbox/dark-v10', tileSize: 512, zoomOffset: -1, attribution: mbAttr }),
-            satellite = L.tileLayer(mbUrl, { id: 'mapbox/satellite-v9', tileSize: 512, zoomOffset: -1, attribution: mbAttr }),
-            ahn3 = AHN3;
+            satellite = L.tileLayer(mbUrl, { id: 'mapbox/satellite-v9', tileSize: 512, zoomOffset: -1, attribution: mbAttr });
+            //ahn3 = L.tileLayer(rootUrl, { id: 'mapbox/satellite-v9', tileSize: 512, zoomOffset: -1, attribution: rootAttr });
 
         let map = L.map(element, {
             center: [parseFloat(element.dataset.lat), parseFloat(element.dataset.lng)],
@@ -80,7 +79,7 @@ class ajaxMap {
             "Grayscale": light,
             "Darkmode": dark,
             "Satellite": satellite,
-            "AHN3": ahn3
+            "AHN3": AHN3
         };
 
         let markers = {};
@@ -100,7 +99,7 @@ class ajaxMap {
             iconUrl: 'img/markers/m1y_0.png',
             iconSize: [15, 15], // size of the icon
         });
-        
+
         // TODO: For each overlaymaps...
         let overlayMaps = JSON.parse(element.dataset.overlaymaps);
 
@@ -170,9 +169,9 @@ class ajaxMap {
         });
 
         // TODO: For each overlayMap
-        // overlayMaps.Boreholes.heat.addTo(map);
-        // overlayMaps['Boreholes']['heat'].addTo(map);
-        // overlayMaps['Boreholes']['markers'].addTo(map);
+        //overlayMaps.Boreholes.heat.addTo(map);
+        //overlayMaps['Boreholes']['heat'].addTo(map);
+        //overlayMaps['Boreholes']['markers'].addTo(map);
 
         let overlayGroups = {};
         overlayGroups["boreholes"] = L.layerGroup();
@@ -200,6 +199,52 @@ class ajaxMap {
         var drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
+        /*
+        var heat = L.heatLayer([
+            [52.5, 5.45, 0.2], // lat, lng, intensity
+            [52.45, 5.50, 0.2],
+        ], {radius: 25}).addTo(map);
+
+        var latlng = [52.3, 5.48, 0.2];
+        heat.addLatLng(latlng);
+        */
+        /*
+        var options = {
+            position: 'topleft',
+            draw: {
+                polyline: {
+                    shapeOptions: {
+                        color: '#f357a1',
+                        weight: 4
+                    }
+                },
+                polygon: {
+                    allowIntersection: false, // Restricts shapes to simple polygons
+                    drawError: {
+                        color: '#e1e100', // Color the shape will turn when intersects
+                        message: '<strong>Oh snap!<strong> you can\'t draw that!' // Message that will show when intersect
+                    },
+                    shapeOptions: {
+                        color: '#bada55'
+                    }
+                },
+                circle: true, // Turns off this drawing tool
+                rectangle: {
+                    shapeOptions: {
+                        clickable: false
+                    }
+                },
+                marker: {
+                    icon: icon
+                }
+            },
+            edit: {
+                featureGroup: drawnItems, //REQUIRED!!
+                remove: true
+            }
+        };
+        */
+
         var options = {
             position: 'topleft',
             draw: {
@@ -219,6 +264,125 @@ class ajaxMap {
                 remove: true
             }
         };
+
+        /*
+        L.drawLocal = {
+            // format: {
+            // 	numeric: {
+            // 		delimiters: {
+            // 			thousands: ',',
+            // 			decimal: '.'
+            // 		}
+            // 	}
+            // },
+            draw: {
+                toolbar: {
+                    // #TODO: this should be reorganized where actions are nested in actions
+                    // ex: actions.undo  or actions.cancel
+                    actions: {
+                        title: 'Cancel drawing',
+                        text: 'Cancel'
+                    },
+                    finish: {
+                        title: 'Finish drawing',
+                        text: 'Finish'
+                    },
+                    undo: {
+                        title: 'Delete last point drawn',
+                        text: 'Delete last point'
+                    },
+                    buttons: {
+                        polyline: 'Draw a polyline',
+                        polygon: 'Draw a polygon',
+                        rectangle: 'Draw a rectangle',
+                        circle: 'Draw a circle',
+                        marker: 'Draw a marker',
+                        circlemarker: 'Draw a circlemarker'
+                    }
+                },
+                handlers: {
+                    circle: {
+                        tooltip: {
+                            start: 'Click and drag to draw circle.'
+                        },
+                        radius: 'Radius'
+                    },
+                    circlemarker: {
+                        tooltip: {
+                            start: 'Click map to place circle marker.'
+                        }
+                    },
+                    marker: {
+                        tooltip: {
+                            start: 'Click map to place marker.'
+                        }
+                    },
+                    polygon: {
+                        tooltip: {
+                            start: 'Click to start drawing shape.',
+                            cont: 'Click to continue drawing shape.',
+                            end: 'Click first point to close this shape.'
+                        }
+                    },
+                    polyline: {
+                        error: '<strong>Error:</strong> shape edges cannot cross!',
+                        tooltip: {
+                            start: 'Click to start drawing line.',
+                            cont: 'Click to continue drawing line.',
+                            end: 'Click last point to finish line.'
+                        }
+                    },
+                    rectangle: {
+                        tooltip: {
+                            start: 'Click and drag to draw rectangle.'
+                        }
+                    },
+                    simpleshape: {
+                        tooltip: {
+                            end: 'Release mouse to finish drawing.'
+                        }
+                    }
+                }
+            },
+            edit: {
+                toolbar: {
+                    actions: {
+                        save: {
+                            title: 'Save changes',
+                            text: 'Save'
+                        },
+                        cancel: {
+                            title: 'Cancel editing, discards all changes',
+                            text: 'Cancel'
+                        },
+                        clearAll: {
+                            title: 'Clear all layers',
+                            text: 'Clear All'
+                        }
+                    },
+                    buttons: {
+                        edit: 'Edit layers',
+                        editDisabled: 'No layers to edit',
+                        remove: 'Delete layers',
+                        removeDisabled: 'No layers to delete'
+                    }
+                },
+                handlers: {
+                    edit: {
+                        tooltip: {
+                            text: 'Drag handles or markers to edit features.',
+                            subtext: 'Click cancel to undo changes.'
+                        }
+                    },
+                    remove: {
+                        tooltip: {
+                            text: 'Click on a feature to remove.'
+                        }
+                    }
+                }
+            }
+        };
+        */
 
         L.Polyline.include({
             contains: function () { return; }
@@ -470,33 +634,27 @@ class ajaxMap {
         // TODO: For each (hasLayer = true) then...
         Object.keys(overlayMaps).forEach(function (value) {
             if (map.hasLayer(overlayMaps[value]["markers"])) {
-                let method = "GET";
                 let sql = {
-                    "url": map.dataset.url,
-                    "db": map.dataset.db,
-                    "query": JSON.parse(map.dataset.query)
-                }
-                // let sql = {
-                //     "query": {
-                //         "url": element.dataset.url,
-                //         "db": element.dataset.db,
-                //         "select": {
-                //             "columns": {
-                //                 0: element.dataset.columns
-                //             }
-                //         },
-                //         "from": {
-                //             "table": element.dataset.table
-                //         },
-                //         "inner_join": element.dataset.inner_join,
-                //         "where": element.dataset.where,
-                //         "order_by": element.dataset.order_by,
-                //         "direction": element.dataset.direction,
-                //         "limit": element.dataset.limit,
-                //         "offset": element.dataset.offset
-                //     }
-                // };
-                ajax(method, sql, self.layerUpdate.bind(self));
+                    "query": {
+                        "url": element.dataset.url,
+                        "db": element.dataset.db,
+                        "select": {
+                            "columns": {
+                                0: element.dataset.columns
+                            }
+                        },
+                        "from": {
+                            "table": element.dataset.table
+                        },
+                        "inner_join": element.dataset.inner_join,
+                        "where": element.dataset.where,
+                        "order_by": element.dataset.order_by,
+                        "direction": element.dataset.direction,
+                        "limit": element.dataset.limit,
+                        "offset": element.dataset.offset
+                    }
+                };
+                ajax(sql, "GET", self.layerUpdate.bind(self));
             }
         })
 
@@ -858,30 +1016,20 @@ class ajaxMap {
 		}
     }
 
-    layerUpdate(response) {
-        if(response.type !== "success") return response;
-
+    layerUpdate(data) {
         console.log("layerUpdate");
-        console.log(response);
 
-        let self = this;
         let map = this.element;
+        let self = this;
 
-        window.history.pushState({page: this.element.dataset.offset + 1}, "", "?page="+(parseInt(this.element.dataset.offset, 10) + 1));
-
-        const data = response.data;
-        const obj = response.data.dataset;
-        const records = data["records"];
-        const totalrecords = data["totalrecords"];
-        delete data.records;
-        delete data.totalrecords;
+        let obj = JSON.parse(data);
+        delete obj.totalrecords;
 
         Object.keys(obj).forEach(function (value) {
             var i = Object.entries(obj[value])[0][1];
 
             if (!self.overlayMaps[Object.keys(self.overlayMaps)[0]]["markers"].hasLayer(self.markers[i])) {
                 // console.log("Marker is in view and wasn't added already...");
-                // Retrieve the coordinates from the data obj...
                 var marker = L.marker([obj[value].latitude, obj[value].longitude], { icon: self.icon });
                 marker.properties = {};
                 marker.properties.id = i;
@@ -1514,12 +1662,12 @@ export default ajaxMap;
 /*
 (function () {
 
-    window["ajaxMaps"] = [];
+    window.Maps = [];
 
     document.addEventListener('DOMContentLoaded', () => {
-        const maps = document.querySelectorAll('div[data-ajax="map"]');
+        const maps = document.querySelectorAll('.map[data-ajax="map"]');
         maps.forEach((element, key) => {
-            window["ajaxMaps"][key] = new ajaxMap(element, key, mapOptions);
+            Maps[key] = new ajaxMap(element, key);
         })
     })
 })();

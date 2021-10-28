@@ -197,7 +197,6 @@ class ajaxTable {
 		const totalrecords = data["totalrecords"];
 		delete data.records;
 		delete data.totalrecords;
-		
 		// TODO: Sort object by property of object
 		let tbody = table.getElementsByTagName("tbody")[0];
 		let tbodies = table.querySelectorAll("tbody");

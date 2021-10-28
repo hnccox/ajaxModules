@@ -51,8 +51,6 @@ class ajaxMenu {
     }
 
     menuTabulate(response) {
-        if(response.type !== "success") return response;
-
         console.log("menuTabulate");
         console.log(response);
         // TO DO: Decouple function from data!
@@ -60,12 +58,11 @@ class ajaxMenu {
         let self = this;
         let menu = this.element;
 
-		const data = response.data;
 		const obj = response.data.dataset;
-		const records = data["records"];
-		const totalrecords = data["totalrecords"];
-		delete data.records;
-		delete data.totalrecords;
+		const records = obj["records"];
+		const totalrecords = obj["totalrecords"];
+		delete obj.records;
+		delete obj.totalrecords;
 
         var node = document.createElement("UL");
         node.style.listStyleType = "none";
