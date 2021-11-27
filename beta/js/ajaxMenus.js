@@ -2,6 +2,7 @@
 
 import { default as ajax } from "/e107_plugins/ajaxDBQuery/beta/js/ajaxDBQuery.js";
 import { default as storageHandler } from "/e107_plugins/storageHandler/js/storageHandler.js";
+import { default as jsonSQL } from "/e107_plugins/jsonSQL/js/jsonSQL.js";
 
 class ajaxMenu {
     constructor(element, index, object = {}) {
@@ -68,16 +69,17 @@ class ajaxMenu {
 		delete data.totalrecords;
 
         var node = document.createElement("UL");
-        node.style.listStyleType = "none";
+        //node.style.listStyleType = "none";
+        node.classList.add("list-unstyled");
         menu.appendChild(node);
 
         Object.keys(obj).forEach(function (key) {
             if (parseInt(obj[key].id, 10) % 10 == 0) {
-                menu.lastElementChild.appendChild(document.createElement("BR"));
+                //menu.lastElementChild.appendChild(document.createElement("BR"));
                 var node = document.createElement("LI");
                 var textnode = document.createTextNode(obj[key].displayname);
                 node.appendChild(textnode);
-                node.style.fontSize = "2rem";
+                //node.style.fontSize = "2em";
                 node.setAttribute("data-systemgrp", obj[key].id);
                 node.onclick = function (e) {
                     e.stopPropagation();
@@ -88,21 +90,47 @@ class ajaxMenu {
                     this.classList.add("active");
                     let slaveTables = document.querySelectorAll('[data-ajax="table"]');
                     slaveTables.forEach((table, index) => {
+
                         let title = table.firstElementChild;
                         title.innerHTML = obj[key].displayname;
                         table.dataset.offset = 0;
-                        table.dataset.where = "systemgrp BETWEEN " + obj[key].id + " AND " + parseInt(obj[key].id + 9, 10);
+                        //table.dataset.where = "systemgrp BETWEEN " + obj[key].id + " AND " + parseInt(obj[key].id + 9, 10);
                         let method = "GET";
                         let sql = {
                             "url": table.dataset.url,
                             "db": table.dataset.db,
                             "query": JSON.parse(table.dataset.query)
                         }
-                        sql.query.offset = table.dataset.offset;
-                        sql.query.where[0].identifier = "systemgrp";
-                        delete sql.query.where[0].value;
-                        sql.query.where[0].between[0] = parseInt(obj[key].id, 10);
-                        sql.query.where[0].between[1] = parseInt(obj[key].id, 10) + 9;
+                        // Object.keys(sql.query).forEach((i) => {
+                        //     if(Object.keys(sql.query[i])[0] == "where") {
+                        //         sql.query[i].where[0]["identifier"] = "systemgrp";
+                        //         delete sql.query[i].where[0].value;
+                        //         sql.query[i].where[0]["between"][0] = parseInt(obj[key].id, 10);
+                        //         sql.query[i].where[0]["between"][1] = parseInt(obj[key].id, 10) + 9;
+                        //     }
+                        // })
+                        for (const [i] of Object.keys(sql.query)) {
+                            switch(Object.keys(sql.query[i])[0]) {
+                                case "where":
+                                    sql.query[i].where[0]["identifier"] = "systemgrp";
+                                    delete sql.query[i].where[0].value;
+                                    sql.query[i].where[0]["between"] = {};
+                                    sql.query[i].where[0]["between"][0] = parseInt(obj[key].id, 10);
+                                    sql.query[i].where[0]["between"][1] = parseInt(obj[key].id, 10) + 9;
+                                    break;
+                                case "offset":
+                                    sql.query[i].offset = 0;
+                                    break;
+                            }
+                            // if(Object.keys(sql.query[i])[0] == "where") {
+                            //     sql.query[i].where[0]["identifier"] = "systemgrp";
+                            //     delete sql.query[i].where[0].value;
+                            //     sql.query[i].where[0]["between"] = {};
+                            //     sql.query[i].where[0]["between"][0] = parseInt(obj[key].id, 10);
+                            //     sql.query[i].where[0]["between"][1] = parseInt(obj[key].id, 10) + 9;
+                            // }
+                        }
+                        table.dataset.query = JSON.stringify(sql.query);
                         ajax(method, sql, ajaxTables[index].tableTabulate.bind(ajaxTables[index]));
                     });
                 };
@@ -110,48 +138,60 @@ class ajaxMenu {
             } else {
                 if (parseInt(obj[key].id, 10) % 10 == 1) {
                     var node = document.createElement("UL");
+                    //node.style.listStyleType = "none";
+                    //node.classList.add("list-unstyled");
                     menu.lastElementChild.lastElementChild.appendChild(node);
                 }
                 var node = document.createElement("LI");
                 var textnode = document.createTextNode(obj[key].displayname);
                 node.appendChild(textnode);
-                node.style.fontSize = "1.5rem";
+                //node.style.fontSize = "1.5em";
                 node.setAttribute("data-systemgrp", obj[key].id);
                 node.onclick = function (e) {
                     e.stopPropagation();
+
                     var elements = this.closest('div[data-ajax="menu"]').querySelectorAll(".active");
                     for (let elem of elements) {
                         elem.classList.remove("active");
                     }
                     this.classList.add("active");
+
                     let slaveTables = document.querySelectorAll('[data-ajax="table"]');
                     slaveTables.forEach((table, index) => {
                         let title = table.firstElementChild;
                         title.innerHTML = obj[key].displayname;
                         table.dataset.offset = 0;
-                        table.dataset.where = "systemgrp=" + obj[key].id;
-                        console.log(table.dataset.query);
+                        //table.dataset.where = "systemgrp=" + obj[key].id;
+
                         let method = "GET";
                         let sql = {
                             "url": table.dataset.url,
                             "db": table.dataset.db,
                             "query": JSON.parse(table.dataset.query)
                         }
-
-                        for (const [key, value] of Object.entries(sql.query)) {
-                            if(Object.keys(sql.query[key])[0] == "where") {
-                                sql.query[key].where[0]["identifier"] = "systemgrp";
-                                delete sql.query[key].where[0]["between"];
-                                sql.query[key].where[0]["value"] = parseInt(obj[key].id, 10);
-                                console.log(sql.query[key].where[0]);
+                        // Object.keys(sql.query).forEach((i) => {
+                        //     if(Object.keys(sql.query[i])[0] == "where") {
+                        //         sql.query[i].where[0]["identifier"] = "systemgrp";
+                        //         delete sql.query[i].where[0]["between"];
+                        //         sql.query[i].where[0]["value"] = parseInt(obj[key].id, 10);
+                        //     }
+                        // })
+                        for (const [i] of Object.keys(sql.query)) {
+                            
+                            switch(Object.keys(sql.query[i])[0]) {
+                                case "where":
+                                    sql.query[i].where[0]["identifier"] = "systemgrp";
+                                    delete sql.query[i].where[0]["between"];
+                                    sql.query[i].where[0]["value"] = parseInt(obj[key].id, 10);
+                                    break;
+                                case "offset":
+                                    sql.query[i].offset = 0;
+                                    break;
                             }
                         }
-
-                        sql.query.offset = table.dataset.offset;
-                        // sql.query.where[0].identifier = "systemgrp";
-                        // delete sql.query.where[0].between;
-                        // sql.query.where[0].value = parseInt(obj[key].id, 10);
+                        table.dataset.query = JSON.stringify(sql.query);
                         ajax(method, sql, ajaxTables[index].tableTabulate.bind(ajaxTables[index]));
+
                     });
                 };
                 menu.lastElementChild.lastElementChild.lastElementChild.appendChild(node);

@@ -21,4 +21,6 @@ function ajaxMap($sqlParams, $mapParams) {
     return $output;
 }
 
+return ajaxMap($sqlParams, $mapParams);
+
 ?>

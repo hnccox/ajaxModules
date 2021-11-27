@@ -1,6 +1,7 @@
+
 'use strict';
 
-import { default as ajax } from "/e107_plugins/ajaxDBQuery/js/ajaxDBQuery.js";
+import { default as ajax } from "/e107_plugins/ajaxDBQuery/beta/js/ajaxDBQuery.js";
 import { default as storageHandler } from "/e107_plugins/storageHandler/js/storageHandler.js";
 
 proj4.defs([
@@ -32,21 +33,41 @@ class ajaxMap {
         //this.callbacks = callbacks;
         this.element = element;
         this.index = index;
-        
         this.dataset = {};
         this.dataset.columns = element.dataset.columns;
         this.dataset.order_by = element.dataset.order_by;
         this.dataset.where = element.dataset.where;
 
         element.dataset.key = index;
-        element.setAttribute("id", "Maps[" + index + "]");
+        element.setAttribute("id", "ajaxMaps[" + index + "]");
 
         let mbAttr = 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
         let mbUrl = 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiaG5jY294IiwiYSI6ImNrbTlxam8wdzE1N2gycGxhN3RiNHpmODkifQ.FQmxF3Bjsb8ElMnALjgO_A';
 
+        let AHN3 = L.tileLayer.wms('https://geodata.nationaalgeoregister.nl/ahn3/wms', {
+            layers: "ahn3_05m_dsm",
+            format: "image/png",
+            version: "1.3.0",
+            transparent: true,
+            opacity: 0.5,
+            crs: L.CRS.EPSG4326,
+            attribution: "Map data &copy; <a href=\"https://www.pdok.nl/\">CC BY Kadaster</a>"
+        })
+        // let defaultParameters = {
+        //     service: 'WFS',
+        //     version: '2.0.0',
+        //     request: 'GetFeature',
+        //     typeName: 'acme:pand',
+        //     maxFeatures: 200,
+        //     outputFormat: 'application/json',
+        //     srsName:'EPSG:4326'
+
+        // };
+
         let light = L.tileLayer(mbUrl, { id: 'mapbox/light-v9', tileSize: 512, zoomOffset: -1, attribution: mbAttr }),
             dark = L.tileLayer(mbUrl, { id: 'mapbox/dark-v10', tileSize: 512, zoomOffset: -1, attribution: mbAttr }),
-            satellite = L.tileLayer(mbUrl, { id: 'mapbox/satellite-v9', tileSize: 512, zoomOffset: -1, attribution: mbAttr });
+            satellite = L.tileLayer(mbUrl, { id: 'mapbox/satellite-v9', tileSize: 512, zoomOffset: -1, attribution: mbAttr }),
+            ahn3 = AHN3;
 
         let map = L.map(element, {
             center: [parseFloat(element.dataset.lat), parseFloat(element.dataset.lng)],
@@ -58,7 +79,8 @@ class ajaxMap {
         let baseMaps = {
             "Grayscale": light,
             "Darkmode": dark,
-            "Satellite": satellite
+            "Satellite": satellite,
+            "AHN3": ahn3
         };
 
         let markers = {};
@@ -78,7 +100,7 @@ class ajaxMap {
             iconUrl: 'img/markers/m1y_0.png',
             iconSize: [15, 15], // size of the icon
         });
-
+        
         // TODO: For each overlaymaps...
         let overlayMaps = JSON.parse(element.dataset.overlaymaps);
 
@@ -147,6 +169,11 @@ class ajaxMap {
 
         });
 
+        // TODO: For each overlayMap
+        // overlayMaps.Boreholes.heat.addTo(map);
+        // overlayMaps['Boreholes']['heat'].addTo(map);
+        // overlayMaps['Boreholes']['markers'].addTo(map);
+
         let overlayGroups = {};
         overlayGroups["boreholes"] = L.layerGroup();
         if (map.getZoom() < parseInt(element.dataset.zoomlevel, 10)) {
@@ -154,6 +181,9 @@ class ajaxMap {
         }
         overlayMaps[Object.keys(overlayMaps)[0]]["markers"].addTo(overlayGroups["boreholes"])
         overlayGroups["boreholes"].addTo(map);
+
+        //overlayMaps[Object.keys(overlayMaps)[0]]["heat"].addTo(overlayGroups["boreholes"]);
+        //overlayMaps[Object.keys(overlayMaps)[0]]["markers"].addTo(overlayGroups["boreholes"]);
 
         L.control.layers(baseMaps, { "Boreholes": overlayGroups["boreholes"] }).addTo(map);
 
@@ -169,16 +199,6 @@ class ajaxMap {
 
         var drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
-
-        /*
-        var heat = L.heatLayer([
-            [52.5, 5.45, 0.2], // lat, lng, intensity
-            [52.45, 5.50, 0.2],
-        ], {radius: 25}).addTo(map);
-
-        var latlng = [52.3, 5.48, 0.2];
-        heat.addLatLng(latlng);
-        */
 
         var options = {
             position: 'topleft',
@@ -362,6 +382,12 @@ class ajaxMap {
 
         var div = document.createElement("div");
         div.classList.add("row");
+        div.style.position = "absolute";
+        div.style.bottom = "0px";
+        div.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
+        div.style.width = "100vw";
+        div.style.marginLeft = "-25%";
+        div.style.marginRight = "-25%";
         div.style.fontSize = "11px";
         var left = document.createElement("div");
         left.classList.add("col-xs-6");
@@ -408,13 +434,10 @@ class ajaxMap {
         right.style.margin = "3px 0px";
         var button = document.createElement("button");
         button.classList.add("btn", "btn-default", "pull-right");
-        // var span = document.createElement("SPAN");
-        // span.classList.add("glyphicon", "glyphicon-save");
-        // span.setAttribute("aria-hidden", "true");
-        var i = document.createElement("I");
-        i.classList.add("fa", "fa-floppy-o");
-        i.setAttribute("aria-hidden", "true");
-        button.appendChild(i);
+        var span = document.createElement("SPAN");
+        span.classList.add("glyphicon", "glyphicon-save");
+        span.setAttribute("aria-hidden", "true");
+        button.appendChild(span);
         button.addEventListener("click", function () {
             Maps[element.dataset.key].exportData();
         });
@@ -435,8 +458,8 @@ class ajaxMap {
                 break;
         }
 
-        //document.getElementById("mapinfo_bounds_ne").innerHTML = xmax + ", " + ymax;
-        //document.getElementById("mapinfo_bounds_sw").innerHTML = xmin + ", " + ymin;
+        // document.getElementById("mapinfo_bounds_ne").innerHTML = xmax + ", " + ymax;
+        // document.getElementById("mapinfo_bounds_sw").innerHTML = xmin + ", " + ymin;
 
         var projCoordNE = proj4(fromProjection, toProjection).forward([xmax, ymax]);
         var projCoordSW = proj4(fromProjection, toProjection).forward([xmin, ymin]);
@@ -447,7 +470,33 @@ class ajaxMap {
         // TODO: For each (hasLayer = true) then...
         Object.keys(overlayMaps).forEach(function (value) {
             if (map.hasLayer(overlayMaps[value]["markers"])) {
-                ajax(element, self.layerUpdate.bind(self));
+                let method = "GET";
+                let sql = {
+                    "url": map.dataset.url,
+                    "db": map.dataset.db,
+                    "query": JSON.parse(map.dataset.query)
+                }
+                // let sql = {
+                //     "query": {
+                //         "url": element.dataset.url,
+                //         "db": element.dataset.db,
+                //         "select": {
+                //             "columns": {
+                //                 0: element.dataset.columns
+                //             }
+                //         },
+                //         "from": {
+                //             "table": element.dataset.table
+                //         },
+                //         "inner_join": element.dataset.inner_join,
+                //         "where": element.dataset.where,
+                //         "order_by": element.dataset.order_by,
+                //         "direction": element.dataset.direction,
+                //         "limit": element.dataset.limit,
+                //         "offset": element.dataset.offset
+                //     }
+                // };
+                ajax(method, sql, self.layerUpdate.bind(self));
             }
         })
 
@@ -455,7 +504,27 @@ class ajaxMap {
 
         map.on('overlayadd', e => {
             if (map.hasLayer(overlayMaps[e.name]["markers"])) {
-                ajax(element, this.layerUpdate.bind(this));
+                let sql = {
+                    "query": {
+                        "url": element.dataset.url,
+                        "db": element.dataset.db,
+                        "select": {
+                            "columns": {
+                                0: element.dataset.columns
+                            }
+                        },
+                        "from": {
+                            "table": element.dataset.table
+                        },
+                        "inner_join": element.dataset.inner_join,
+                        "where": element.dataset.where,
+                        "order_by": element.dataset.order_by,
+                        "direction": element.dataset.direction,
+                        "limit": element.dataset.limit,
+                        "offset": element.dataset.offset
+                    }
+                };
+                ajax(sql, "GET", this.layerUpdate.bind(this));
             }
         })
         map.on('layeradd', e => {
@@ -494,7 +563,27 @@ class ajaxMap {
                 // TODO: get ajax request for each layer which is true and add to array
                 Object.keys(overlayMaps).forEach(function (value) {
                     if (map.hasLayer(overlayMaps[value]["markers"])) {
-                        ajax(element, self.layerUpdate.bind(self));
+                        let sql = {
+                            "query": {
+                                "url": element.dataset.url,
+                                "db": element.dataset.db,
+                                "select": {
+                                    "columns": {
+                                        0: element.dataset.columns
+                                    }
+                                },
+                                "from": {
+                                    "table": element.dataset.table
+                                },
+                                "inner_join": element.dataset.inner_join,
+                                "where": element.dataset.where,
+                                "order_by": element.dataset.order_by,
+                                "direction": element.dataset.direction,
+                                "limit": element.dataset.limit,
+                                "offset": element.dataset.offset
+                            }
+                        };
+                        ajax(sql, "GET", self.layerUpdate.bind(self));
                     }
                 })
 
@@ -539,12 +628,32 @@ class ajaxMap {
                 // TODO: get ajax request for each layer which is true and add to array
                 Object.keys(overlayMaps).forEach(function (value) {
                     if (map.hasLayer(overlayMaps[value]["markers"])) {
-                        ajax(element, self.layerUpdate.bind(self));
+                        let sql = {
+                            "query": {
+                                "url": element.dataset.url,
+                                "db": element.dataset.db,
+                                "select": {
+                                    "columns": {
+                                        0: element.dataset.columns
+                                    }
+                                },
+                                "from": {
+                                    "table": element.dataset.table
+                                },
+                                "inner_join": element.dataset.inner_join,
+                                "where": element.dataset.where,
+                                "order_by": element.dataset.order_by,
+                                "direction": element.dataset.direction,
+                                "limit": element.dataset.limit,
+                                "offset": element.dataset.offset
+                            }
+                        };
+                        ajax(sql, "GET", self.layerUpdate.bind(self));
                     }
                 })
 
-                //document.getElementById("mapinfo_bounds_ne").innerHTML = xmax + ", " + ymax;
-                //document.getElementById("mapinfo_bounds_sw").innerHTML = xmin + ", " + ymin;
+                // document.getElementById("mapinfo_bounds_ne").innerHTML = xmax + ", " + ymax;
+                // document.getElementById("mapinfo_bounds_sw").innerHTML = xmin + ", " + ymin;
 
                 var projCoordNE = proj4(fromProjection, toProjection).forward([xmax, ymax]);
                 var projCoordSW = proj4(fromProjection, toProjection).forward([xmin, ymin]);
@@ -733,7 +842,7 @@ class ajaxMap {
             if (this.map.getZoom() >= parseInt(this.element.dataset.zoomlevel, 10) /*|| self.getData().totalrecords <= self.getDataset().limit */) {
                 table.previousElementSibling.style.display = "none";
                 table.style.display = "table";
-                Tables[table.dataset.index].tableTabulate(table, this.data);
+                Tables[table.dataset.index].tableTabulate(this.data);
             } else {
                 table.previousElementSibling.style.display = "block";
                 table.style.display = "none";
@@ -749,19 +858,30 @@ class ajaxMap {
 		}
     }
 
-    layerUpdate(element, data) {
+    layerUpdate(response) {
+        if(response.type !== "success") return response;
+
         console.log("layerUpdate");
+        console.log(response);
 
         let self = this;
+        let map = this.element;
 
-        let obj = JSON.parse(data);
-        delete obj.totalrecords;
+        window.history.pushState({page: this.element.dataset.offset + 1}, "", "?page="+(parseInt(this.element.dataset.offset, 10) + 1));
+
+        const data = response.data;
+        const obj = response.data.dataset;
+        const records = data["records"];
+        const totalrecords = data["totalrecords"];
+        delete data.records;
+        delete data.totalrecords;
 
         Object.keys(obj).forEach(function (value) {
             var i = Object.entries(obj[value])[0][1];
 
             if (!self.overlayMaps[Object.keys(self.overlayMaps)[0]]["markers"].hasLayer(self.markers[i])) {
                 // console.log("Marker is in view and wasn't added already...");
+                // Retrieve the coordinates from the data obj...
                 var marker = L.marker([obj[value].latitude, obj[value].longitude], { icon: self.icon });
                 marker.properties = {};
                 marker.properties.id = i;
@@ -833,7 +953,7 @@ class ajaxMap {
             }
         })
 
-        if ((self.map.getZoom() >= parseInt(element.dataset.zoomlevel, 10) + 1)) {
+        if ((self.map.getZoom() >= parseInt(map.dataset.zoomlevel, 10) + 1)) {
             if (self.map.hasLayer(self.overlayMaps[Object.keys(self.overlayMaps)[0]]["heat"])) {
                 self.map.removeLayer(self.overlayMaps[Object.keys(self.overlayMaps)[0]]["heat"]);
             }
@@ -888,7 +1008,7 @@ class ajaxMap {
         */
 
         this.data = data;
-        this.mapCallback(element, data);
+        this.mapCallback(map);
 
     }
 
@@ -974,7 +1094,27 @@ class ajaxMap {
             text += "Filename: " + "LLGData-" + document.getElementById("mapinfo_bounds_ne").innerHTML.replace(", ", "_") + "-" + document.getElementById("mapinfo_bounds_sw").innerHTML.replace(", ", "_") + ".xml";
             var bool = confirm(text);
             if (bool == true) {
-                ajax(element, self.exportDataAsXML.bind(self));
+                let sql = {
+                    "query": {
+                        "url": element.dataset.url,
+                        "db": element.dataset.db,
+                        "select": {
+                            "columns": {
+                                0: element.dataset.columns
+                            }
+                        },
+                        "from": {
+                            "table": element.dataset.table
+                        },
+                        "inner_join": element.dataset.inner_join,
+                        "where": element.dataset.where,
+                        "order_by": element.dataset.order_by,
+                        "direction": element.dataset.direction,
+                        "limit": element.dataset.limit,
+                        "offset": element.dataset.offset
+                    }
+                };
+                ajax(sql, "GET", self.exportDataAsXML.bind(self));
             }
         }
 
@@ -996,16 +1136,36 @@ class ajaxMap {
         });
         */
 
-        var el = {};
-        el.dataset = {};
+        let sql = {
+            "query": {
+                "url": "//wikiwfs.geo.uu.nl/e107_plugins/ajaxDBQuery/ajaxDBQuery.php",
+                "db": "llg",
+                "select": {
+                    "columns": {
+                        0: "startdepth,depth,texture,organicmatter,plantremains,color,oxired,gravelcontent,median,calcium,ferro,groundwater,sample,soillayer,stratigraphy,remarks"
+                    }
+                },
+                "from": {
+                    "table": Tables[1].element.dataset.table
+                },
+                "where": "borehole=':uid'",
+                "order_by": "startdepth",
+                "direction": "ASC",
+                "limit": element.dataset.limit,
+                "offset": element.dataset.offset
+            }
+        };
 
-        el.dataset.url = "//wikiwfs.geo.uu.nl/e107_plugins/ajaxDBQuery/ajaxDBQuery.php";
-        el.dataset.db = "llg";
-        el.dataset.table = Tables[1].element.dataset.table; // TODO: This should be a variable..
-        el.dataset.columns = "startdepth,depth,texture,organicmatter,plantremains,color,oxired,gravelcontent,median,calcium,ferro,groundwater,sample,soillayer,stratigraphy,remarks";
-        el.dataset.where = "borehole=':uid'";
-        el.dataset.order_by = "startdepth";
-        el.dataset.direction = "ASC";
+        // var el = {};
+        // el.dataset = {};
+
+        // el.dataset.url = "//wikiwfs.geo.uu.nl/e107_plugins/ajaxDBQuery/ajaxDBQuery.php";
+        // el.dataset.db = "llg";
+        // el.dataset.table = Tables[1].element.dataset.table; // TODO: This should be a variable..
+        // el.dataset.columns = "startdepth,depth,texture,organicmatter,plantremains,color,oxired,gravelcontent,median,calcium,ferro,groundwater,sample,soillayer,stratigraphy,remarks";
+        // el.dataset.where = "borehole=':uid'";
+        // el.dataset.order_by = "startdepth";
+        // el.dataset.direction = "ASC";
 
         function asyncAJAX(prop) {
 
@@ -1026,9 +1186,9 @@ class ajaxMap {
 
                 dataObj[k].boreholeheader = v;
 
-                el.dataset.where = "borehole='" + index + "'";
+                sql.query.where = "borehole='" + index + "'";
 
-                ajax(el, (element, data) => {
+                ajax(sql, (element, data) => {
                     let obj = JSON.parse(data);
                     if (obj.totalrecords == 0) { reject(); return; }
                     delete obj.totalrecords;
@@ -1354,12 +1514,12 @@ export default ajaxMap;
 /*
 (function () {
 
-    window.Maps = [];
+    window["ajaxMaps"] = [];
 
     document.addEventListener('DOMContentLoaded', () => {
-        const maps = document.querySelectorAll('.map[data-ajax="map"]');
+        const maps = document.querySelectorAll('div[data-ajax="map"]');
         maps.forEach((element, key) => {
-            Maps[key] = new ajaxMap(element, key);
+            window["ajaxMaps"][key] = new ajaxMap(element, key, mapOptions);
         })
     })
 })();

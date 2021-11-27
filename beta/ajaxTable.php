@@ -4,7 +4,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-function createAjaxTable($sqlParams, $tableParams) {
+return function ($sqlParams, $tableParams) {
 
 	$sqlParams = array_merge(
 		array('inner_join' => '', 'order_by' => '', 'direction' => '', 'offset' => 1, 'limit' => 20), 

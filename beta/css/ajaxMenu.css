@@ -12,6 +12,14 @@ div[data-ajax="menu"] li:hover {
   cursor: pointer;
 }
 
+div[data-ajax="menu"] > ul > li {
+  font-size: 1.5rem;
+}
+
+div[data-ajax="menu"] > ul > li > ul > li {
+  font-size: 1rem;
+}
+
 div[data-ajax="menu"] > ul > li.active {
   color: rgb(0, 0, 0);
 }

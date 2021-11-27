@@ -6,7 +6,7 @@ import { default as storageHandler } from "/e107_plugins/storageHandler/js/stora
 class ajaxTable {
 	constructor(element, index, object = {}) {
 		console.log("ajaxTable constructor");
-		
+
 		for (const [key, value] of Object.entries(object)) {
 			this[key] = value;
 		}
@@ -15,7 +15,7 @@ class ajaxTable {
 		this.index = index;
 		this.rows = {};
 		this.selectedRows = {};
-		
+
 		element.dataset.index = index;
 		element.setAttribute("id", "Tables[" + index + "]");
 
@@ -151,7 +151,7 @@ class ajaxTable {
 	tableCallback(element) {
 		console.log("tableCallback");
 
-		if(this._tableCallback.functions) {
+		if (this._tableCallback.functions) {
 			let callbacks = this._tableCallback.functions;
 			Object.keys(callbacks).forEach(function (value) {
 				callbacks[value](element);
@@ -183,7 +183,7 @@ class ajaxTable {
 
 			console.log(k, v);
 			console.log(obj[k][Object.keys(obj[k])[0]]);
-			
+
 			if (v === parseInt(table.dataset.preview, 10)) {
 				// Always show the first preview results (default 3), add new tbody after that
 				tbody.insertAdjacentElement('afterend', document.createElement('tbody'));
@@ -195,7 +195,7 @@ class ajaxTable {
 				}
 
 				if (table.getAttribute("aria-expanded") == "true") {
-					tbody.classList.add("collapse", "in");
+					tbody.classList.add("collapse", "show");
 					tbody.setAttribute("aria-expanded", true)
 				} else {
 					tbody.classList.add("collapse");
@@ -331,15 +331,15 @@ class ajaxTable {
 				let nodes = table.getElementsByClassName("collapse");
 
 				for (let node of nodes) {
-					node.classList.add("in");
+					node.classList.add("show");
 					node.setAttribute("aria-expanded", true);
 				}
 
 				let expandbutton = tfoot.getElementsByClassName("table-buttons")[0].getElementsByTagName("button")[0];
 				expandbutton.classList.remove("btn-primary");
 				expandbutton.classList.add("btn-secondary");
-				expandbutton.firstElementChild.classList.remove("glyphicon-chevron-down");
-				expandbutton.firstElementChild.classList.add("glyphicon-chevron-up");
+				expandbutton.firstElementChild.classList.remove("fa-chevron-down");
+				expandbutton.firstElementChild.classList.add("fa-chevron-up");
 			}
 
 			let limitbutton = tfoot.getElementsByClassName("table-buttons")[0].getElementsByTagName("button")[1];
@@ -458,7 +458,7 @@ class ajaxTable {
 			button.setAttribute("aria-controls", "");
 			button.addEventListener("click", function () { Tables[index].tableToggle(this) });
 			var span = document.createElement("span");
-			span.classList.add("glyphicon", "glyphicon-chevron-down");
+			span.classList.add("fa", "fa-chevron-down");
 			span.setAttribute("aria-hidden", true);
 			button.appendChild(span);
 			div.appendChild(button);
@@ -532,32 +532,34 @@ class ajaxTable {
 			tfoot.lastElementChild.appendChild(node);
 		}
 
-		var tablebuttons = document.createElement("th");
-		tablebuttons.classList.add("table-buttons");
-		if (table.dataset.add == true) {
-			var button = document.createElement("button");
-			button.type = "button";
-			button.classList.add("btn", "btn-primary", "btn-xs");
-			button.addEventListener("click", function () { Tables[index].tableAddData() });
-			var span = document.createElement("span");
-			span.classList.add("glyphicon", "glyphicon-plus");
-			span.setAttribute("aria-hidden", "true");
-			var textnode = document.createTextNode(" Add");
-			button.appendChild(span);
-			button.appendChild(textnode);
-			tablebuttons.appendChild(button);
-		} else {
-			switch (element.dataset.type) {
-				case "slave":
-				case "relational":
-					break;
-				default:
-					var textnode = document.createTextNode("...");
-					tablebuttons.appendChild(textnode);
+		if (element.dataset.type !== "slave") {
+			var tablebuttons = document.createElement("th");
+			tablebuttons.classList.add("table-buttons");
+			if (table.dataset.add == true) {
+				var button = document.createElement("button");
+				button.type = "button";
+				button.classList.add("btn", "btn-primary", "btn-xs");
+				button.addEventListener("click", function () { Tables[index].tableAddData() });
+				var span = document.createElement("span");
+				span.classList.add("glyphicon", "glyphicon-plus");
+				span.setAttribute("aria-hidden", "true");
+				var textnode = document.createTextNode(" Add");
+				button.appendChild(span);
+				button.appendChild(textnode);
+				tablebuttons.appendChild(button);
+			} else {
+				switch (element.dataset.type) {
+					case "slave":
+					case "relational":
+						break;
+					default:
+						var textnode = document.createTextNode("...");
+						tablebuttons.appendChild(textnode);
+				}
 			}
+			tfoot.lastElementChild.appendChild(tablebuttons);
 		}
-		tfoot.lastElementChild.appendChild(tablebuttons);
-
+		
 		tfoot.appendChild(document.createElement("tr"));
 		tfoot.lastElementChild.classList.add("navigation", "collapse");
 		var navigation = document.createElement("th");
@@ -1003,7 +1005,7 @@ class ajaxTable {
 		});
 
 	}
-	
+
 	tableLimit(element) {
 		//console.log("tableLimit");
 
@@ -1042,7 +1044,7 @@ class ajaxTable {
 			table.dataset.offset = parseInt(table.dataset.offset, 10) - 1;
 		} else if (table.getElementsByClassName("currentpage")[0].innerText > totalpages) {
 			if (parseInt(table.dataset.offset, 10) + 1 !== totalpages) {
-				table.dataset.offset = parseInt(totalpages, 10) - 1 ;
+				table.dataset.offset = parseInt(totalpages, 10) - 1;
 			}
 			table.getElementsByClassName("currentpage")[0].innerText = totalpages;
 		} else if (table.getElementsByClassName("currentpage")[0].innerText < 1) {
@@ -1101,14 +1103,14 @@ class ajaxTable {
 		let nodes = table.getElementsByClassName("collapse");
 
 		for (const node of nodes) {
-			node.classList.toggle("in");
+			node.classList.toggle("show");
 			node.toggleAttribute("aria-expanded");
 		}
 
 		element.classList.toggle("btn-primary");
 		element.classList.toggle("btn-secondary");
-		element.firstElementChild.classList.toggle("glyphicon-chevron-down");
-		element.firstElementChild.classList.toggle("glyphicon-chevron-up");
+		element.firstElementChild.classList.toggle("fa-chevron-down");
+		element.firstElementChild.classList.toggle("fa-chevron-up");
 		table.toggleAttribute("aria-expanded");
 
 	}

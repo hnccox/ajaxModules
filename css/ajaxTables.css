@@ -44,6 +44,7 @@ table[data-ajax] {
 
 table[data-ajax] caption {
   display: table-caption;
+  caption-side: top;
   font-size: 2em; 
   margin-top: 0.67em;
   margin-bottom: 0.67em;

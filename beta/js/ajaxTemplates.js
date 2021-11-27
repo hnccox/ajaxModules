@@ -2,6 +2,7 @@
 'use strict';
 
 import { default as ajax } from "/e107_plugins/ajaxDBQuery/beta/js/ajaxDBQuery.js";
+import { default as jsonSQL } from "/e107_plugins/jsonSQL/js/jsonSQL.js";
 
 class ajaxTemplate {
 	constructor(element, index, object = {}) {
@@ -64,10 +65,12 @@ class ajaxTemplate {
 
 	eventReceiver(e, i) {
 		console.log("eventReceiver");
+		// console.log(e);
+		// console.log(i);
 
-		if (this.selectedDetail == i) {
-			return;
-		}
+		// if (this.selectedDetail == i) {
+		// 	return;
+		// }
 
 		const mouseover = () => {
 			//console.log(i);
@@ -96,13 +99,14 @@ class ajaxTemplate {
 			//element.dataset.order_by = element.dataset.order_by.replace(":lat", lat).replace(":lng", lng);
 			this.element.dataset.where = this.element.dataset.where.replace(":uid", i);
 
+			let query = null; //JSON.parse(this.element.dataset.query) || null;
 			let method = "GET";
 			let sql = {
 				"url": this.element.dataset.url,
 				"db": this.element.dataset.db,
-				"query": JSON.parse(this.element.dataset.query)
+				"query": query
 			}
-
+			sql = jsonSQL.query.replace(sql, [":uid"], [i]);
 			ajax(method, sql, this.templateTabulate.bind(this));
 			/*
 			let slaveTables = document.querySelectorAll('[data-ajax="table"][data-master="' + this.element.id + '"]');
@@ -140,7 +144,10 @@ class ajaxTemplate {
 		let data = this.data;
 
 		// TO DO: send "update" event to Receivers
-		console.log(this.element.id);
+		//console.log(this.element.id);
+		this.element.classList.add("show");
+		this.element.style.display = "block";
+
 		let slaveTables = document.querySelectorAll('[data-ajax="table"][data-master="' + this.element.id + '"]');
 		slaveTables.forEach((table) => {
 			table.dataset.where = this.element.dataset.where;
@@ -162,43 +169,57 @@ class ajaxTemplate {
 	}
 
 	templateTabulate(response) {
+		if (response.type !== "success") return response;
+
 		console.log("templateTabulate");
 		console.log(response);
 
-		let template = this.element;
+		const obj = this.parseResponse?.(response) || response;
+
 		let self = this;
+		let template = this.element;
 
-		const obj = response.data.dataset;
-		const records = obj["records"];
-		const totalrecords = obj["totalrecords"];
-		delete obj.records;
-		delete obj.totalrecords;
+		//const obj = response.data.dataset;
+		// const records = obj["records"];
+		// const totalrecords = obj["totalrecords"];
+		// delete obj.records;
+		// delete obj.totalrecords;
 
-		Object.keys(obj[0]).forEach(function (key) {
+		// TODO: This isnt just for drilldate! Data can be in sub arrays!
+		// function isJSON(str) {
+        //     try {
+        //         return (JSON.parse(str) && !!str);
+        //     } catch (e) {
+        //         return false;
+        //     }
+        // }
+		Object.keys(obj).forEach(function (key) {
+			// Is our value a string or an object/array?
 			var NodeList = self.element.querySelectorAll('[data-variable="' + key + '"]');
+			//console.log(key, NodeList);
 			NodeList.forEach(function (el) {
 				if (el.tagName == "INPUT") {
 					if (el.type == "date") {
-						var date = new Date(Date.parse(obj[0][key]));
-						obj[0][key] = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
+						var date = new Date(Date.parse(obj[key]));
+						obj[key] = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
 					}
-					el.value = obj[0][key];
+					el.value = obj[key];
 				} else {
 					if (key == "drilldate") {
-						var date = new Date(Date.parse(obj[0][key]));
-						obj[0][key] = ('0' + date.getDate()).slice(-2) + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + date.getFullYear();
+						var date = new Date(Date.parse(obj[key]));
+						obj[key] = ('0' + date.getDate()).slice(-2) + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + date.getFullYear();
 					}
-					el.innerHTML = obj[0][key];
+					el.innerHTML = obj[key];
 				}
 			});
 
 		});
 
-		template.dataset.id = obj[0][Object.keys(obj[0])[0]];
+		template.dataset.id = obj[Object.keys(obj)[0]];
 
 		// TODO: undefined?
 		this.data = obj;
-		this.templateCallback(template);
+		this.templateCallback();
 
 	}
 

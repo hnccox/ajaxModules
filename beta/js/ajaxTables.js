@@ -4,10 +4,10 @@ import { default as ajax } from "/e107_plugins/ajaxDBQuery/beta/js/ajaxDBQuery.j
 import { default as storageHandler } from "/e107_plugins/storageHandler/js/storageHandler.js";
 
 class ajaxTable {
-	constructor(element, index, object = {}) {
+	constructor(element, index, tableOptions = {}) {
 		console.log("ajaxTable constructor");
 
-		for (const [key, value] of Object.entries(object)) {
+		for (const [key, value] of Object.entries(tableOptions)) {
 			this[key] = value;
 		}
 
@@ -15,19 +15,8 @@ class ajaxTable {
 		this.index = index;
 		this.rows = {};
 		this.selectedRows = {};
-		this.query = JSON.parse(element.dataset.query);
-		console.log(this.query);
-		Object.keys(this.query).forEach((obj) => {
-			for (const [key, value] of Object.entries(this.query[obj])) {
-				switch(key) {
-					case "limit": this.element.dataset.limit = value;
-						break;
-					case "offset": this.element.dataset.offset = value;
-						break;
-				}
-			}
-		})
-
+		//this.query = JSON.parse(element.dataset.query);
+		
 		element.dataset.index = index;
 		element.setAttribute("id", "ajaxTables[" + index + "]");
 
@@ -36,8 +25,8 @@ class ajaxTable {
 		// (No need to sort a map..., change the sort of the current dataset with javascript)
 		// If we change the limit, use the limit of the master...
 
-		if (element.getElementsByTagName("tbody").length == 0) {
-			this.tableCreate(element, index);
+		if (element.getElementsByTagName('tbody').length == 0) {
+			this.tableCreate();
 		}
 
 		if (!element.dataset.master) {
@@ -47,6 +36,16 @@ class ajaxTable {
 				"db": element.dataset.db,
 				"query": JSON.parse(element.dataset.query)
 			}
+			// Object.keys(sql.query).forEach((key) => {
+			// 	switch(Object.keys(sql.query[key])[0]) {
+			// 		case "limit":
+			// 			sql.query[key].limit = parseInt(element.dataset.limit, 10);
+			// 			break;
+			// 		case "offset":
+			// 			sql.query[key].offset = parseInt(element.dataset.offset, 10) * parseInt(element.dataset.limit, 10);
+			// 			break;
+			// 	}
+			// })
 			ajax(method, sql, this.tableTabulate.bind(this));
 		}
 
@@ -65,7 +64,7 @@ class ajaxTable {
 	}
 
 	eventReceiver(e, i) {
-		console.log("eventReceiver");
+		console.info(`%c${this.element.id} eventReceiver`, "color: #28a745");
 
 		let self = this;
 
@@ -141,7 +140,6 @@ class ajaxTable {
 				click();
 				break;
 			case "selected":
-				console.log("EVENT SELECTED");
 				selected();
 				break;
 			default:
@@ -151,24 +149,276 @@ class ajaxTable {
 	}
 
 	eventTransmitter(e, i) {
-		// console.log("eventTransmitter");
+		console.info(`%c${this.element.id} eventTransmitter`, "color: #28a745");
+		if(!e.origin) { e.origin = this.element.id }
 
-		/*
-		let masterMaps = document.getElementById(this.element.dataset.master);
+		let masterMaps = document.querySelectorAll(`[id='${this.element.dataset.master}']`);
 		masterMaps.forEach((map) => {
-			console.log(map.dataset.key);
-			Maps[map.dataset.key].eventReceiver(e, i);
+			if(map.id === e.origin) { return; }
+			window["ajaxMaps"][map.dataset.key].eventReceiver(e, i);
 		})
-		*/
+
 		// TODO: slave table
-		if (document.getElementById(this.element.dataset.master)) {
-			var key = document.getElementById(this.element.dataset.master).dataset.key;
-			window["ajaxMaps"][key].eventReceiver(e, i);
-		}
+		// if (document.getElementById(this.element.dataset.master)) {
+		// 	var key = document.getElementById(this.element.dataset.master).dataset.key;
+		// 	window["ajaxMaps"][0].eventReceiver(e, i);
+		// }
 	}
 
+	tableCreate() {
+		console.info("%ctableCreate", "color: #28a745");
+		
+		let self = this;
+		let table = this.element;
+
+		// TODO: Download
+		const params = new URLSearchParams(window.location.search)
+
+		let caption = table.getElementsByTagName("caption")[0];
+		// if (params.has("yeargroup")) {
+		// 	var button = document.createElement("button");
+		// 	button.classList.add("btn", "btn-default", "pull-right");
+		// 	var span = document.createElement("SPAN");
+		// 	span.classList.add("glyphicon", "glyphicon-save");
+		// 	span.setAttribute("aria-hidden", "true");
+		// 	button.appendChild(span);
+		// 	button.addEventListener("click", function () {
+		// 		self.exportData();
+		// 	});
+		// 	caption.appendChild(button);
+		// }
+
+		if (table.dataset.columns.split(",").length !== table.dataset.columnnames.split(",").length) { console.error('%cError: columnNames.length != columns.length', 'color:red'); return null; }
+		let columnArr = table.dataset.columns.split(",");
+		let columnNamesArr = table.dataset.columnnames.split(",");
+
+		if (table.dataset.order_by === '') { table.dataset.order_by = columnArr[0]; }
+		if (!table.dataset.events) { table.dataset.events = "click" }
+
+		let thead = document.createElement("thead");
+		thead.classList.add("table-header");
+		thead.appendChild(document.createElement("tr"));
+		let tbody = document.createElement("tbody");
+		tbody.dataset.href = table.dataset.href;
+		let tfoot = document.createElement("tfoot");
+		tfoot.classList.add("table-footer");
+		tfoot.appendChild(document.createElement("tr"));
+
+		for (var i = 0; i < columnArr.length; i++) {
+			var node = document.createElement("th");
+			node.setAttribute("data-column", columnArr[i]);
+			var sortASC = document.createElement("button");
+			sortASC.classList.add("btn", "btn-primary", "btn-xs");
+			sortASC.type = "submit";
+			sortASC.addEventListener("click", function () { window["ajaxTables"][self.index].tableSort(this); });
+			sortASC.dataset.value = "ASC";
+			sortASC.appendChild(document.createElement("SPAN"));
+			sortASC.lastElementChild.appendChild(document.createTextNode("⇑"));
+			var sortDESC = document.createElement("button");
+			sortDESC.classList.add("btn", "btn-primary", "btn-xs");
+			sortDESC.type = "submit";
+			sortDESC.addEventListener("click", function () { window["ajaxTables"][self.index].tableSort(this); });
+			sortDESC.dataset.value = "DESC";
+			sortDESC.appendChild(document.createElement("SPAN"));
+			sortDESC.lastElementChild.appendChild(document.createTextNode("⇓"));
+			var textnode = document.createElement("span");
+			textnode.appendChild(document.createTextNode(columnNamesArr[i]));
+			node.append(document.createTextNode(" "), sortASC, sortDESC, document.createTextNode(" "), textnode, document.createTextNode(" "));
+			thead.lastElementChild.appendChild(node);
+		}
+
+		table.appendChild(thead);
+		table.appendChild(tbody);
+
+		if (!table.dataset.slave || table.dataset.slave != "1") {
+			var tablebuttons = document.createElement("th");
+			tablebuttons.classList.add("table-buttons");
+			var div = document.createElement("div");
+			div.classList.add("btn-group", "btn-group-xs");
+			var button = document.createElement("button");
+			button.type = "button";
+			button.classList.add("btn", "btn-primary", "btn-xs");
+			button.dataset.toggle = "collapse";
+			button.dataset.target = "";
+			button.setAttribute("aria-expanded", true);
+			button.setAttribute("aria-controls", "");
+			button.addEventListener("click", function () { window["ajaxTables"][self.index].tableToggle(this) });
+			var span = document.createElement("span");
+			span.classList.add("fa", "fa-chevron-down");
+			span.setAttribute("aria-hidden", true);
+			button.appendChild(span);
+			div.appendChild(button);
+			var button = document.createElement("button");
+			button.type = "button";
+			button.id = "dropdownMenuTable";
+			button.classList.add("btn", "btn-default", "btn-xs", "btn-outline-secondary", "dropdown-toggle");
+			button.dataset.bsToggle = "dropdown";
+			button.setAttribute("aria-expanded", false);
+			//button.setAttribute("aria-haspopup", true);
+			var span = document.createElement("span");
+			span.innerText = "20";
+			button.appendChild(span);
+			button.appendChild(document.createTextNode(" "));
+			var span = document.createElement("span");
+			span.classList.add("caret");
+			button.appendChild(span);
+			var span = document.createElement("span");
+			span.classList.add("sr-only");
+			span.innerText = "Toggle Dropdown";
+			button.appendChild(span);
+			div.appendChild(button);
+			var ul = document.createElement("ul");
+			ul.classList.add("dropdown-menu");
+			ul.style.minWidth = "unset";
+			ul.setAttribute("aria-labelledby", "dropdownMenuTable");
+			var li = document.createElement("li");
+			var button = document.createElement("button");
+			button.classList.add("dropdown-item");
+			button.addEventListener("click", function () { window["ajaxTables"][self.index].tableLimit(this); return false; })
+			button.innerText = "20";
+			li.appendChild(button);
+			ul.appendChild(li);
+			var li = document.createElement("li");
+			var button = document.createElement("button");
+			button.classList.add("dropdown-item");
+			button.addEventListener("click", function () { window["ajaxTables"][self.index].tableLimit(this); return false; })
+			button.innerText = "50";
+			li.appendChild(button);
+			ul.appendChild(li);
+			var li = document.createElement("li");
+			var button = document.createElement("button");
+			button.classList.add("dropdown-item");
+			button.addEventListener("click", function () { window["ajaxTables"][self.index].tableLimit(this); return false; })
+			button.innerText = "100";
+			li.appendChild(button);
+			ul.appendChild(li);
+			div.appendChild(ul);
+			tablebuttons.appendChild(div);
+			tfoot.lastElementChild.appendChild(tablebuttons);
+		}
+
+		var totalrecords = document.createElement("th");
+		totalrecords.classList.add("totalrecords");
+		var cols;
+		switch (table.dataset.type) {
+			case "slave":
+			case "relational":
+				totalrecords.setAttribute("colspan", table.dataset.columns.split(",").length);
+				cols = table.dataset.columns.split(",").length;
+				break;
+			default:
+				cols = 3;
+		}
+
+		tfoot.lastElementChild.appendChild(totalrecords);
+
+		for (var i = cols; i < columnArr.length; i++) {
+			var node = document.createElement("th");
+			if (!table.dataset.slave || table.dataset.slave != "1") {
+				node.innerText = "...";
+			}
+			tfoot.lastElementChild.appendChild(node);
+		}
+
+		var tablebuttons = document.createElement("th");
+		tablebuttons.classList.add("table-buttons");
+		if (table.dataset.add == true) {
+			var button = document.createElement("button");
+			button.type = "button";
+			button.classList.add("btn", "btn-primary", "btn-xs");
+			button.addEventListener("click", function () { window["ajaxTables"][self.index].tableAddData() });
+			var span = document.createElement("span");
+			span.classList.add("glyphicon", "glyphicon-plus");
+			span.setAttribute("aria-hidden", "true");
+			var textnode = document.createTextNode(" Add");
+			button.appendChild(span);
+			button.appendChild(textnode);
+			tablebuttons.appendChild(button);
+		} else {
+			switch (table.dataset.type) {
+				case "slave":
+				case "relational":
+					break;
+				default:
+					var textnode = document.createTextNode("...");
+					tablebuttons.appendChild(textnode);
+			}
+		}
+		tfoot.lastElementChild.appendChild(tablebuttons);
+
+		tfoot.appendChild(document.createElement("tr"));
+		tfoot.lastElementChild.classList.add("navigation", "collapse");
+		var navigation = document.createElement("th");
+		navigation.colSpan = table.dataset.columns.split(',').length;
+		var nav = document.createElement("nav");
+		nav.classList.add("text-center");
+		nav.setAttribute("aria-label", "Page navigation");
+		var div = document.createElement("div");
+		div.classList.add("pagination", "btn-group");
+		// var li = document.createElement("li");
+		// li.classList.add("disabled");
+		var button = document.createElement("button");
+		//a.href = "?page="+parseInt(this.element.dataset.offset, 10) - 1;
+		button.type = "button";
+		button.title = "Previous";
+		button.dataset.nav = "prev";
+		button.classList.add("btn", "btn-default", "disabled");
+		button.addEventListener("click", function () { window["ajaxTables"][self.index].tablePagination(this); return false; });
+		var span = document.createElement("span");
+		span.setAttribute("aria-hidden", "true");
+		//span.innerHTML = "&laquo;";
+		span.innerHTML = "<i class=\"fa fa-chevron-left\"></i>";
+		button.appendChild(span);
+		//li.appendChild(button);
+		div.appendChild(button);
+		//var li = document.createElement("li");
+		// var button = document.createElement("button");
+		// button.type = "button";
+		// button.classList.add("btn", "btn-default");
+		var span = document.createElement("span");
+		span.type = "button";
+		span.classList.add("btn", "btn-default", "currentpage");
+		span.setAttribute("contenteditable", "true");
+		span.innerText = "1";
+		//button.appendChild(span);
+		div.appendChild(span);
+		//ul.appendChild(li);
+		//var li = document.createElement("li");
+		var button = document.createElement("button");
+		//a.href = "?page="+parseInt(this.element.dataset.offset, 10) + 1;
+		button.type = "button";
+		button.title = "Next";
+		button.dataset.nav = "next";
+		button.classList.add("btn", "btn-default");
+		button.addEventListener("click", function () { window["ajaxTables"][self.index].tablePagination(this); return false; });
+		var span = document.createElement("span");
+		span.setAttribute("aria-hidden", "true");
+		//span.innerHTML = "&raquo;";
+		span.innerHTML = "<i class=\"fa fa-chevron-right\"></i>";
+		button.appendChild(span);
+		div.appendChild(button);
+		//ul.appendChild(li);
+		nav.appendChild(div);
+		navigation.appendChild(nav);
+		tfoot.lastElementChild.appendChild(navigation);
+		table.appendChild(tfoot);
+
+		if (table.dataset.limit) {
+			table.getElementsByClassName("currentpage")[0].addEventListener("keydown", function (event) {
+				// Number 13 is the "Enter" key on the keyboard
+				if (event.key === "Enter") {
+					// Cancel the default action, if needed
+					event.preventDefault();
+					// Trigger the function
+					window["ajaxTables"][self.index].tablePagination(table);
+				}
+			});
+		}
+
+	}
+		
 	tableCallback(element) {
-		console.log("tableCallback");
+		console.log("%ctableCallback", "color:orange");
 
 		if (this._tableCallback.functions) {
 			let callbacks = this._tableCallback.functions;
@@ -182,19 +432,22 @@ class ajaxTable {
 	tableTabulate(response) {
 		if(response.type !== "success") return response;
 		
-		console.log("tableTabulate");
+		console.log("%ctableTabulate", "color:yellow");
 		console.log(response);
 
 		let self = this;
 		let table = this.element;
 		let tfoot = table.getElementsByClassName("table-footer")[0];
 
-		window.history.pushState({page: this.element.dataset.offset + 1}, "", "?page="+(parseInt(this.element.dataset.offset, 10) + 1));
+		// window.history.pushState({page: this.element.dataset.offset + 1}, "", "?page="+(parseInt(this.element.dataset.offset, 10) + 1));
+
+		const obj = self.parseResponse(response);
 
 		const data = response.data;
-		const obj = response.data.dataset;
+		// const obj = response.data.dataset;
 		const records = data["records"];
 		const totalrecords = data["totalrecords"];
+		delete data.dataset;
 		delete data.records;
 		delete data.totalrecords;
 		
@@ -207,7 +460,7 @@ class ajaxTable {
 
 		var rowcount = 0;
 		Object.keys(obj).forEach(function (key) {
-			if (key === parseInt(table.dataset.preview, 10)) {
+			if (parseInt(key, 10) === parseInt(table.dataset.preview, 10)) {
 				// Always show the first preview results (default 3), add new tbody after that
 				tbody.insertAdjacentElement('afterend', document.createElement('tbody'));
 				if (tbody.dataset.href == "1") {
@@ -218,7 +471,7 @@ class ajaxTable {
 				}
 
 				if (table.getAttribute("aria-expanded") == "true") {
-					tbody.classList.add("collapse", "in");
+					tbody.classList.add("collapse", "show");
 					tbody.setAttribute("aria-expanded", true)
 				} else {
 					tbody.classList.add("collapse");
@@ -336,22 +589,22 @@ class ajaxTable {
 
 		});
 
-		table.getElementsByClassName("currentpage")[0].innerText = Math.floor(parseInt(table.dataset.offset, 10) / parseInt(table.dataset.limit, 10)) + 1;
+		table.getElementsByClassName("currentpage")[0].innerText = parseInt(table.dataset.offset, 10) + 1;
 		table.dataset.totalrecords = totalrecords;
 		var limit = Object.keys(obj).length || 0;
 		switch (table.dataset.type) {
 			case "slave":
-				table.getElementsByClassName("totalrecords")[0].innerText = "Records listed: " + limit;
+				table.getElementsByClassName("totalrecords")[0].innerText = `Records listed: ${limit}`;
 				break;
 			case "relational":
 				table.getElementsByClassName("totalrecords")[0].innerHTML = "<span class='pull-right' style='text-align:right'>Geografisch Instituut Utrecht</span>";
 				break;
 			default:
-				table.getElementsByClassName("totalrecords")[0].innerText = "";
+				table.getElementsByClassName("totalrecords")[0].innerText = `Total records: ${totalrecords}`;
 		}
 		if (table.dataset.limit) {
-			if (Math.ceil(parseInt(table.dataset.totalrecords, 10) / parseInt(table.dataset.limit, 10)) === 1) {
-				table.getElementsByTagName("nav")[0].getElementsByTagName("ul")[0].lastElementChild.classList.add("disabled");
+			if (Math.floor(parseInt(table.dataset.totalrecords, 10) / parseInt(table.dataset.limit, 10)) === 0) {
+				table.getElementsByTagName("nav")[0].getElementsByTagName("div")[0].lastElementChild.classList.add("disabled");
 			}
 
 			if (table.hasAttribute("aria-expanded")) {
@@ -359,15 +612,15 @@ class ajaxTable {
 				let nodes = table.getElementsByClassName("collapse");
 
 				for (let node of nodes) {
-					node.classList.add("in");
+					node.classList.add("show");
 					node.setAttribute("aria-expanded", true);
 				}
 
 				let expandbutton = tfoot.getElementsByClassName("table-buttons")[0].getElementsByTagName("button")[0];
 				expandbutton.classList.remove("btn-primary");
 				expandbutton.classList.add("btn-secondary");
-				expandbutton.firstElementChild.classList.remove("glyphicon-chevron-down");
-				expandbutton.firstElementChild.classList.add("glyphicon-chevron-up");
+				expandbutton.firstElementChild.classList.remove("fa-chevron-down");
+				expandbutton.firstElementChild.classList.add("fa-chevron-up");
 			}
 
 			let limitbutton = tfoot.getElementsByClassName("table-buttons")[0].getElementsByTagName("button")[1];
@@ -381,7 +634,7 @@ class ajaxTable {
 			}
 		}
 
-		let totalpages = Math.ceil(parseInt(table.dataset.totalrecords, 10) / parseInt(table.dataset.limit, 10));
+		let totalpages = Math.floor(parseInt(table.dataset.totalrecords, 10) / parseInt(table.dataset.limit, 10)) + 1;
 		switch (parseInt(table.dataset.offset, 10)) {
 			case 0:
 				table.getElementsByTagName("nav")[0].getElementsByTagName("div")[0].firstElementChild.classList.add("disabled");
@@ -402,666 +655,27 @@ class ajaxTable {
 				table.getElementsByTagName("nav")[0].getElementsByTagName("div")[0].lastElementChild.classList.remove("disabled");
 		}
 
-		this.data = obj;
+		this.dataset = obj;
 		this.tableCallback(table);
 
 	}
 
-	tableCreate() {
-		console.log("tableCreate");
-
-		let self = this;
-		let table = this.element;
-
-		// TODO: Download
-		const params = new URLSearchParams(window.location.search)
-
-		let caption = table.getElementsByTagName("caption")[0];
-		if (params.has("yeargroup")) {
-			var button = document.createElement("button");
-			button.classList.add("btn", "btn-default", "pull-right");
-			var span = document.createElement("SPAN");
-			span.classList.add("glyphicon", "glyphicon-save");
-			span.setAttribute("aria-hidden", "true");
-			button.appendChild(span);
-			button.addEventListener("click", function () {
-				self.exportData();
-			});
-			caption.appendChild(button);
-		}
-
-		if (table.dataset.columns.split(",").length !== table.dataset.columnnames.split(",").length) { return null; }
-		let columnArr = table.dataset.columns.split(",");
-		let columnNamesArr = table.dataset.columnnames.split(",");
-
-		if (table.dataset.order_by === '') { table.dataset.order_by = columnArr[0]; }
-		if (!table.dataset.events) { table.dataset.events = "click" }
-
-		let thead = document.createElement("thead");
-		thead.classList.add("table-header");
-		thead.appendChild(document.createElement("tr"));
-		let tbody = document.createElement("tbody");
-		tbody.dataset.href = table.dataset.href;
-		let tfoot = document.createElement("tfoot");
-		tfoot.classList.add("table-footer");
-		tfoot.appendChild(document.createElement("tr"));
-
-		for (var i = 0; i < columnArr.length; i++) {
-			var node = document.createElement("th");
-			node.setAttribute("data-column", columnArr[i]);
-			var sortASC = document.createElement("button");
-			sortASC.classList.add("btn", "btn-primary", "btn-xs");
-			sortASC.type = "submit";
-			sortASC.addEventListener("click", function () { window["ajaxTables"][self.index].tableSort(this); });
-			sortASC.dataset.value = "ASC";
-			sortASC.appendChild(document.createElement("SPAN"));
-			sortASC.lastElementChild.appendChild(document.createTextNode("⇑"));
-			var sortDESC = document.createElement("button");
-			sortDESC.classList.add("btn", "btn-primary", "btn-xs");
-			sortDESC.type = "submit";
-			sortDESC.addEventListener("click", function () { window["ajaxTables"][self.index].tableSort(this); });
-			sortDESC.dataset.value = "DESC";
-			sortDESC.appendChild(document.createElement("SPAN"));
-			sortDESC.lastElementChild.appendChild(document.createTextNode("⇓"));
-			var textnode = document.createElement("span");
-			textnode.appendChild(document.createTextNode(columnNamesArr[i]));
-			node.append(document.createTextNode(" "), sortASC, sortDESC, document.createTextNode(" "), textnode, document.createTextNode(" "));
-			thead.lastElementChild.appendChild(node);
-		}
-
-		table.appendChild(thead);
-		table.appendChild(tbody);
-
-		if (!table.dataset.slave || table.dataset.slave != "1") {
-			var tablebuttons = document.createElement("th");
-			tablebuttons.classList.add("table-buttons");
-			var div = document.createElement("div");
-			div.classList.add("btn-group");
-			var button = document.createElement("button");
-			button.type = "button";
-			button.classList.add("btn", "btn-primary", "btn-xs");
-			button.dataset.toggle = "collapse";
-			button.dataset.target = "";
-			button.setAttribute("aria-expanded", true);
-			button.setAttribute("aria-controls", "");
-			button.addEventListener("click", function () { window["ajaxTables"][self.index].tableToggle(this) });
-			var span = document.createElement("span");
-			span.classList.add("glyphicon", "glyphicon-chevron-down");
-			span.setAttribute("aria-hidden", true);
-			button.appendChild(span);
-			div.appendChild(button);
-			var button = document.createElement("button");
-			button.type = "button";
-			button.classList.add("btn", "btn-default", "btn-xs", "dropdown-toggle");
-			button.dataset.toggle = "dropdown";
-			button.setAttribute("aria-expanded", false);
-			button.setAttribute("aria-haspopup", true);
-			var span = document.createElement("span");
-			span.innerText = "20";
-			button.appendChild(span);
-			button.appendChild(document.createTextNode(" "));
-			var span = document.createElement("span");
-			span.classList.add("caret");
-			button.appendChild(span);
-			var span = document.createElement("span");
-			span.classList.add("sr-only");
-			span.innerText = "Toggle Dropdown";
-			button.appendChild(span);
-			div.appendChild(button);
-			var ul = document.createElement("ul");
-			ul.classList.add("dropdown-menu");
-			ul.style.minWidth = "unset";
-			var li = document.createElement("li");
-			var a = document.createElement("a");
-			a.href = "#";
-			a.addEventListener("click", function () { window["ajaxTables"][self.index].tableLimit(this); return false; })
-			a.innerText = "20";
-			li.appendChild(a);
-			ul.appendChild(li);
-			var li = document.createElement("li");
-			var a = document.createElement("a");
-			a.href = "#";
-			a.addEventListener("click", function () { window["ajaxTables"][self.index].tableLimit(this); return false; })
-			a.innerText = "50";
-			li.appendChild(a);
-			ul.appendChild(li);
-			var li = document.createElement("li");
-			var a = document.createElement("a");
-			a.href = "#";
-			a.addEventListener("click", function () { window["ajaxTables"][self.index].tableLimit(this); return false; })
-			a.innerText = "100";
-			li.appendChild(a);
-			ul.appendChild(li);
-			div.appendChild(ul);
-			tablebuttons.appendChild(div);
-			tfoot.lastElementChild.appendChild(tablebuttons);
-		}
-
-		var totalrecords = document.createElement("th");
-		totalrecords.classList.add("totalrecords");
-		var cols;
-		switch (table.dataset.type) {
-			case "slave":
-			case "relational":
-				totalrecords.setAttribute("colspan", table.dataset.columns.split(",").length);
-				cols = table.dataset.columns.split(",").length;
-				break;
-			default:
-				cols = 3;
-		}
-
-		tfoot.lastElementChild.appendChild(totalrecords);
-
-		for (var i = cols; i < columnArr.length; i++) {
-			var node = document.createElement("th");
-			if (!table.dataset.slave || table.dataset.slave != "1") {
-				node.innerText = "...";
-			}
-			tfoot.lastElementChild.appendChild(node);
-		}
-
-		var tablebuttons = document.createElement("th");
-		tablebuttons.classList.add("table-buttons");
-		if (table.dataset.add == true) {
-			var button = document.createElement("button");
-			button.type = "button";
-			button.classList.add("btn", "btn-primary", "btn-xs");
-			button.addEventListener("click", function () { window["ajaxTables"][self.index].tableAddData() });
-			var span = document.createElement("span");
-			span.classList.add("glyphicon", "glyphicon-plus");
-			span.setAttribute("aria-hidden", "true");
-			var textnode = document.createTextNode(" Add");
-			button.appendChild(span);
-			button.appendChild(textnode);
-			tablebuttons.appendChild(button);
-		} else {
-			switch (table.dataset.type) {
-				case "slave":
-				case "relational":
-					break;
-				default:
-					var textnode = document.createTextNode("...");
-					tablebuttons.appendChild(textnode);
-			}
-		}
-		tfoot.lastElementChild.appendChild(tablebuttons);
-
-		tfoot.appendChild(document.createElement("tr"));
-		tfoot.lastElementChild.classList.add("navigation", "collapse");
-		var navigation = document.createElement("th");
-		navigation.colSpan = table.dataset.columns.split(',').length;
-		var nav = document.createElement("nav");
-		nav.classList.add("text-center");
-		nav.setAttribute("aria-label", "Page navigation");
-		var div = document.createElement("div");
-		div.classList.add("pagination", "btn-group");
-		// var li = document.createElement("li");
-		// li.classList.add("disabled");
-		var button = document.createElement("button");
-		//a.href = "?page="+parseInt(this.element.dataset.offset, 10) - 1;
-		button.type = "button";
-		button.title = "Previous";
-		button.dataset.nav = "prev";
-		button.classList.add("btn", "btn-default", "disabled");
-		button.addEventListener("click", function () { window["ajaxTables"][self.index].tablePagination(this); return false; });
-		var span = document.createElement("span");
-		span.setAttribute("aria-hidden", "true");
-		span.innerHTML = "&laquo;";
-		button.appendChild(span);
-		//li.appendChild(button);
-		div.appendChild(button);
-		//var li = document.createElement("li");
-		// var button = document.createElement("button");
-		// button.type = "button";
-		// button.classList.add("btn", "btn-default");
-		var span = document.createElement("span");
-		span.type = "button";
-		span.classList.add("btn", "btn-default", "currentpage");
-		span.setAttribute("contenteditable", "true");
-		span.innerText = "1";
-		//button.appendChild(span);
-		div.appendChild(span);
-		//ul.appendChild(li);
-		//var li = document.createElement("li");
-		var button = document.createElement("button");
-		//a.href = "?page="+parseInt(this.element.dataset.offset, 10) + 1;
-		button.type = "button";
-		button.title = "Next";
-		button.dataset.nav = "next";
-		button.classList.add("btn", "btn-default");
-		button.addEventListener("click", function () { window["ajaxTables"][self.index].tablePagination(this); return false; });
-		var span = document.createElement("span");
-		span.setAttribute("aria-hidden", "true");
-		span.innerHTML = "&raquo;";
-		button.appendChild(span);
-		div.appendChild(button);
-		//ul.appendChild(li);
-		nav.appendChild(div);
-		navigation.appendChild(nav);
-		tfoot.lastElementChild.appendChild(navigation);
-		table.appendChild(tfoot);
-
-		if (table.dataset.limit) {
-			table.getElementsByClassName("currentpage")[0].addEventListener("keydown", function (event) {
-				// Number 13 is the "Enter" key on the keyboard
-				if (event.key === "Enter") {
-					// Cancel the default action, if needed
-					event.preventDefault();
-					// Trigger the function
-					window["ajaxTables"][self.index].tablePagination(table);
-				}
-			});
-		}
-
-	}
-
-	exportData() {
-		console.log("exportData");
-		// TODO: For each datapoint in map, asyncAJAX slave element
-		// For each datapoint in slave element, asyncAJAX slave element
-		// etc...
-		let self = this;
-		let element = this.element;
-
-		element.dataset.columns = "*";
-		ajax(element, self.exportDataAsXML.bind(self));
-	}
-
-	exportDataAsXML(element, data) {
-		console.log("exportDataAsXML");
-
-		let obj = JSON.parse(data);
-		if (obj.totalrecords == 0) { return; }
-		delete obj.totalrecords;
-
-		let dataObj = new Object();
-
-		/*
-		let slaveTables = document.querySelectorAll('[data-ajax="table"][data-master="' + this.element.id + '"]');
-		slaveTables.forEach((table) => {
-			ajaxTables[table.dataset.key].eventReceiver(e, i);
-		});
-		*/
-
-		var el = {};
-		el.dataset = {};
-
-		el.dataset.url = "//wikiwfs.geo.uu.nl/e107_plugins/ajaxDBQuery/ajaxDBQuery.php";
-		el.dataset.db = "llg";
-
-		switch (ajaxTables[0].element.dataset.table) {
-			case "llg_nl_boreholeheader":
-				el.dataset.table = "llg_nl_boreholedata";
-				break;
-			case "llg_it_boreholeheader":
-				el.dataset.table = "llg_it_boreholedata";
-				break;
-			default: el.dataset.table = "0";
-		}
-		// el.dataset.table = "llg_it_boreholedata"; //Tables[0].element.dataset.table;	// Master table index
-		el.dataset.columns = "startdepth,depth,texture,organicmatter,plantremains,color,oxired,gravelcontent,median,calcium,ferro,groundwater,sample,soillayer,stratigraphy,remarks";
-		el.dataset.where = "borehole=''";
-		el.dataset.order_by = "startdepth";
-		el.dataset.direction = "ASC";
-
-		function asyncAJAX(prop) {
-
-			return new Promise((resolve, reject) => {
-				//let [k, v] = Object.entries(obj)[prop];
-				var k = Object.keys(obj)[prop];
-				var v = obj[Object.keys(obj)[prop]];
-				var index = v[Object.keys(v)[0]];
-
-				//console.log([k,v]);
-				//console.log(k);
-				//console.log(v);
-				//console.log(index);
-
-				dataObj[k] = {};
-				dataObj[k].boreholeheader = {};
-				dataObj[k].boreholedata = {};
-
-				dataObj[k].boreholeheader = v;
-
-				el.dataset.where = "borehole='" + index + "'";
-
-				ajax(el, (element, data) => {
-					let obj = JSON.parse(data);
-					if (obj.totalrecords == 0) { reject(); return; }
-					delete obj.totalrecords;
-					dataObj[k].boreholedata = obj;
-					resolve(dataObj[k]);
-				});
-
-			})
-		}
-
-		var createJSON = new Promise((resolve, reject) => {
-
-			const promises = [];
-			for (const prop in obj) {
-				promises.push(asyncAJAX(prop));
-			}
-
-			Promise.all(promises)
-				.then(obj => {
-					resolve(obj)
-				}, reason => {
-					console.log(reason)
-				}).catch(e => {
-					console.log(e)
-				});
-
-		});
-
-		createJSON.then(obj => {
-
-			var XMLSchema = () => {
-				const xhr = new XMLHttpRequest(),
-					method = "GET",
-					url = "https://wikiwfs.geo.uu.nl/LLG/XMLSchema/LLG2012DataSet.xsd";
-
-				xhr.open(method, url, true);
-				xhr.setRequestHeader('Content-Type', 'text/xml');
-				xhr.overrideMimeType('application/xml');
-
-				xhr.onreadystatechange = function () {
-					if (this.readyState === XMLHttpRequest.DONE) {
-						if (this.status == 200) {
-							createXML(this.responseXML);
-						} else {
-							console.log(this.statusText)
-						}
-					}
-				}
-
-				xhr.send(null);
-			}
-
-			var createXML = (schema) => {
-
-				var namespaceURI,
-					qualifiedNameStr,
-					documentType;
-				namespaceURI = "";
-				qualifiedNameStr = "";
-				documentType = null;
-
-				var XMLDocument = document.implementation.createDocument(namespaceURI, qualifiedNameStr, documentType);
-				var LLG2012Dataset = XMLDocument.createElement("LLG2012Dataset");
-				LLG2012Dataset.appendChild(XMLDocument.createTextNode("\n"));
-				LLG2012Dataset.setAttribute("xmlns", "http://tempuri.org/LLG2012DataSet.xsd");
-				LLG2012Dataset.appendChild(XMLDocument.importNode(schema.documentElement, true));
-
-				var BoreholeHeader = XMLDocument.createElement("BoreholeHeader");
-				var Borehole = XMLDocument.createElement("Borehole");
-				var Name = XMLDocument.createElement("Name");
-				var DrillDate = XMLDocument.createElement("DrillDate");
-				var Xco = XMLDocument.createElement("Xco");
-				var Yco = XMLDocument.createElement("Yco");
-				var CoordZone = XMLDocument.createElement("CoordZone");
-				var Elevation = XMLDocument.createElement("Elevation");
-				var DrillDepth = XMLDocument.createElement("DrillDepth");
-				var Geom = XMLDocument.createElement("Geom");
-				var Geol = XMLDocument.createElement("Geol");
-				var Soil = XMLDocument.createElement("Soil");
-				var Veget = XMLDocument.createElement("Veget");
-				var GroundWaterStep = XMLDocument.createElement("GroundWaterStep");
-				var ExtraRemarks = XMLDocument.createElement("ExtraRemarks");
-
-				var BoreholeData = XMLDocument.createElement("BoreholeData");
-				var Depth = XMLDocument.createElement("Depth");
-				var StartDepth = XMLDocument.createElement("StartDepth");
-				var Texture = XMLDocument.createElement("Texture");
-				var OrganicMatter = XMLDocument.createElement("OrganicMatter");
-				var PlantRemains = XMLDocument.createElement("PlantRemains");
-				var Color = XMLDocument.createElement("Color");
-				var OxiRed = XMLDocument.createElement("OxiRed");
-				var GravelContent = XMLDocument.createElement("GravelContent");
-				var Median = XMLDocument.createElement("Median");
-				var Calcium = XMLDocument.createElement("Calcium");
-				var Ferro = XMLDocument.createElement("Ferro");
-				var GroundWater = XMLDocument.createElement("GroundWater");
-				var Sample = XMLDocument.createElement("Sample");
-				var SoilLayer = XMLDocument.createElement("SoilLayer");
-				var Stratigraphy = XMLDocument.createElement("Stratigraphy");
-				var Remarks = XMLDocument.createElement("Remarks");
-
-				var GroupIdentity = XMLDocument.createElement("GroupIdentity");
-				var Year = XMLDocument.createElement("Year");
-				var Group = XMLDocument.createElement("Group");
-				var Names = XMLDocument.createElement("Names");
-				var LLGType = XMLDocument.createElement("LLGType");
-
-				Object.keys(obj).forEach(key => {
-					// console.log(key);
-					// console.log(obj[key]);  // value
-					LLG2012Dataset.appendChild(XMLDocument.createTextNode("\n"))
-					var BoreholeHeader = XMLDocument.createElement("BoreholeHeader")
-					if (obj[key].boreholeheader.borehole) {
-						BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-						BoreholeHeader.appendChild(Borehole.cloneNode(true))
-						BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.borehole))
-					}
-					if (obj[key].boreholeheader.name) {
-						BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-						BoreholeHeader.appendChild(Name.cloneNode(true))
-						BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.name.substring(0, 20)))
-					}
-					if (obj[key].boreholeheader.drilldate) {
-						BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-						BoreholeHeader.appendChild(DrillDate.cloneNode(true))
-						BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.drilldate))
-					}
-					if (obj[key].boreholeheader.xco) {
-						BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-						BoreholeHeader.appendChild(Xco.cloneNode(true))
-						BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.xco))
-					}
-					if (obj[key].boreholeheader.yco) {
-						BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-						BoreholeHeader.appendChild(Yco.cloneNode(true))
-						BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.yco))
-					}
-					if (obj[key].boreholeheader.coordzone) {
-						BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-						BoreholeHeader.appendChild(CoordZone.cloneNode(true))
-						BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.coordzone))
-					}
-					if (obj[key].boreholeheader.elevation) {
-						BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-						BoreholeHeader.appendChild(Elevation.cloneNode(true))
-						BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.elevation))
-					}
-					if (obj[key].boreholeheader.drilldepth) {
-						BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-						BoreholeHeader.appendChild(DrillDepth.cloneNode(true))
-						BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.drilldepth))
-					}
-					if (obj[key].boreholeheader.geom) {
-						BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-						BoreholeHeader.appendChild(Geom.cloneNode(true))
-						BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.geom))
-					}
-					if (obj[key].boreholeheader.geol) {
-						BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-						BoreholeHeader.appendChild(Geol.cloneNode(true))
-						BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.geol))
-					}
-					if (obj[key].boreholeheader.soil) {
-						BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-						BoreholeHeader.appendChild(Soil.cloneNode(true))
-						BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.soil))
-					}
-					if (obj[key].boreholeheader.veget) {
-						BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-						BoreholeHeader.appendChild(Veget.cloneNode(true))
-						BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.veget))
-					}
-					if (obj[key].boreholeheader.groundwaterstep) {
-						BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-						BoreholeHeader.appendChild(GroundWaterStep.cloneNode(true))
-						BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.groundwaterstep))
-					}
-					if (obj[key].boreholeheader.extraremarks) {
-						BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-						BoreholeHeader.appendChild(ExtraRemarks.cloneNode(true))
-						BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.extraremarks))
-					}
-
-					Object.values(obj[key].boreholedata).forEach(value => {
-						//console.log(value);
-						//console.log(obj[key].boreholeheader.borehole);
-						//console.log(obj[key].boreholedata);
-						BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"));
-						var BoreholeData = XMLDocument.createElement("BoreholeData")
-						if (obj[key].boreholeheader.borehole) {
-							BoreholeData.appendChild(Borehole.cloneNode(true))
-							BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.borehole))
-						}
-						if (value.depth) {
-							BoreholeData.appendChild(Depth.cloneNode(true))
-							BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.depth))
-							BoreholeData.appendChild(StartDepth.cloneNode(true))
-							BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.startdepth))
-						}
-						if (value.texture) {
-							BoreholeData.appendChild(Texture.cloneNode(true))
-							BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.texture))
-						}
-						if (value.organicmatter) {
-							BoreholeData.appendChild(OrganicMatter.cloneNode(true))
-							BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.organicmatter))
-						}
-						if (value.plantremains) {
-							BoreholeData.appendChild(PlantRemains.cloneNode(true))
-							BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.plantremains))
-						}
-						if (value.color) {
-							BoreholeData.appendChild(Color.cloneNode(true))
-							BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.color))
-						}
-						if (value.oxired) {
-							BoreholeData.appendChild(OxiRed.cloneNode(true))
-							BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.oxired))
-						}
-						if (value.gravelcontent) {
-							BoreholeData.appendChild(GravelContent.cloneNode(true))
-							BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.gravelcontent))
-						}
-						if (value.median) {
-							BoreholeData.appendChild(Median.cloneNode(true))
-							BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.median))
-						}
-						if (value.calcium) {
-							BoreholeData.appendChild(Calcium.cloneNode(true))
-							BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.calcium))
-						}
-						if (value.ferro) {
-							BoreholeData.appendChild(Ferro.cloneNode(true))
-							BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.ferro))
-						}
-						if (value.groundwater) {
-							BoreholeData.appendChild(GroundWater.cloneNode(true))
-							BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.groundwater))
-						}
-						if (value.sample) {
-							BoreholeData.appendChild(Sample.cloneNode(true))
-							BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.sample))
-						}
-						if (value.soillayer) {
-							BoreholeData.appendChild(SoilLayer.cloneNode(true))
-							BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.soillayer))
-						}
-						if (value.stratigraphy) {
-							BoreholeData.appendChild(Stratigraphy.cloneNode(true))
-							BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.stratigraphy))
-						}
-						if (value.remarks) {
-							BoreholeData.appendChild(Remarks.cloneNode(true))
-							BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.remarks))
-						}
-						BoreholeHeader.appendChild(BoreholeData.cloneNode(true))
-
-					})
-
-					//console.log(Object.values(obj[key])[0]);
-					//console.log(obj[key].boreholeheader);
-					//console.log(Object.values(obj[key])[1]);
-					//console.log(obj[key].boreholedata);
-					BoreholeHeader.appendChild(XMLDocument.createTextNode("\n"))
-					LLG2012Dataset.appendChild(BoreholeHeader.cloneNode(true))
-
-				});
-
-				var llgtype;
-				switch (ajaxTables[0].element.dataset.table) {
-					case "llg_nl_boreholedata":
-						llgtype = "0";
-						break;
-					case "llg_it_boreholedata":
-						llgtype = "2";
-						break;
-					default: llgtype = "0";
-				}
-				GroupIdentity.appendChild(XMLDocument.createTextNode("\n\t"))
-				GroupIdentity.appendChild(Year)
-				GroupIdentity.lastElementChild.appendChild(XMLDocument.createTextNode("9999"))
-				GroupIdentity.appendChild(XMLDocument.createTextNode("\n\t"))
-				GroupIdentity.appendChild(Group)
-				GroupIdentity.lastElementChild.appendChild(XMLDocument.createTextNode("99"))
-				GroupIdentity.appendChild(XMLDocument.createTextNode("\n\t"))
-				GroupIdentity.appendChild(Names)
-				GroupIdentity.lastElementChild.appendChild(XMLDocument.createTextNode("collection"))
-				GroupIdentity.appendChild(XMLDocument.createTextNode("\n\t"))
-				GroupIdentity.appendChild(LLGType)
-				GroupIdentity.lastElementChild.appendChild(XMLDocument.createTextNode(llgtype))
-				GroupIdentity.appendChild(XMLDocument.createTextNode("\n"))
-
-				LLG2012Dataset.appendChild(XMLDocument.createTextNode("\n"))
-				LLG2012Dataset.appendChild(GroupIdentity)
-				LLG2012Dataset.appendChild(XMLDocument.createTextNode("\n"))
-				XMLDocument.appendChild(LLG2012Dataset)
-
-				let file = new File(['<?xml version="1.0" standalone="yes"?>' + "\n" + (new XMLSerializer()).serializeToString(XMLDocument)], { type: 'text/xml' });
-				let url = URL.createObjectURL(file);
-				let elem = window.document.createElement('a');
-				elem.href = url;
-				//elem.download = "LLGData-" + element.getElementsByTagName("caption")[0].innerText.replace("Yeargroup: ", "yeargroup_") + ".xml";
-				elem.download = element.getElementsByTagName("caption")[0].innerText.replace("Yeargroup: ", "") + ".xml";
-				document.body.appendChild(elem);
-				elem.click();
-				document.body.removeChild(elem);
-				URL.revokeObjectURL(url); //Releases the resources
-			}
-
-			XMLSchema();
-
-		}, reason => {
-			console.log(reason)
-		}).catch(e => {
-			console.log(e)
-		});
-
-	}
-
 	tableLimit(element) {
-		console.log("tableLimit");
-
+		console.log("%ctableLimit", "color:green");
 		let table = element.closest("table");
 		let button = element.closest("th").getElementsByTagName("button")[1];
 		button.getElementsByTagName("span")[0].innerText = element.innerText;
 
-		if (table.dataset.limit !== element.innerText) {
+		if (parseInt(table.dataset.limit, 10) !== parseInt(element.innerText, 10)) {
 			if (parseInt(table.dataset.limit, 10) >= parseInt(table.dataset.totalrecords) && parseInt(element.innerText, 10) >= parseInt(table.dataset.totalrecords)) {
 				return null;
 			}
 			table.dataset.limit = element.innerText;
-			table.dataset.offset = 0;
-			table.getElementsByTagName("nav")[0].getElementsByTagName("ul")[0].firstElementChild.classList.add("disabled");
-			table.getElementsByClassName("currentpage")[0].innerText = parseInt(table.dataset.offset, 10) + 1;
-			table.getElementsByTagName("nav")[0].getElementsByTagName("ul")[0].lastElementChild.classList.remove("disabled");
-			table.setAttribute("aria-expanded", true);
+			// table.dataset.offset = 0;
+			// table.getElementsByTagName("nav")[0].getElementsByTagName("div")[0].firstElementChild.classList.add("disabled");
+			// table.getElementsByClassName("currentpage")[0].innerText = parseInt(table.dataset.offset, 10) + 1;
+			// table.getElementsByTagName("nav")[0].getElementsByTagName("div")[0].lastElementChild.classList.remove("disabled");
+			// table.setAttribute("aria-expanded", true);
 
 			let method = "GET";
 			let sql = {
@@ -1069,29 +683,35 @@ class ajaxTable {
 				"db": table.dataset.db,
 				"query": JSON.parse(table.dataset.query)
 			}
-			sql.query.limit = table.dataset.limit;
-			sql.query.offset = parseInt(table.dataset.offset, 10) * parseInt(table.dataset.limit, 10);
+			Object.keys(sql.query).forEach((key) => {
+				switch(Object.keys(sql.query[key])[0]) {
+					case "limit":
+						sql.query[key].limit = parseInt(table.dataset.limit, 10);
+						break;
+				}
+			})
+			table.dataset.query = JSON.stringify(sql.query);
 			ajax(method, sql, this.tableTabulate.bind(this));
 		}
 
 	}
 
 	tablePagination(element) {
-		console.log("tablePagination");
-
+		console.log("%ctablePagination", "color:green");
 		let table = element.closest("table");
 		let currentpage = parseInt(table.dataset.offset, 10) + 1;
-		let totalpages = Math.ceil(parseInt(table.dataset.totalrecords, 10) / parseInt(table.dataset.limit, 10));
-		console.log("totalpages: " +totalpages);
+		let totalpages = Math.floor(parseInt(table.dataset.totalrecords, 10) / parseInt(table.dataset.limit, 10)) + 1;
+
+		console.log(`totalpages: ${totalpages}`);
 
 		if (totalpages == 1) { table.getElementsByClassName("currentpage")[0].innerText = totalpages; return; }
 
-		if (element.dataset.nav == "next" && parseInt(table.dataset.offset, 10) + 1 < totalpages) {
+		if (element.dataset.nav == "next" && parseInt(table.dataset.offset, 10) + 1 < parseInt(totalpages, 10)) {
 			table.dataset.offset = parseInt(table.dataset.offset, 10) + 1;
 		} else if (element.dataset.nav == "prev" && parseInt(table.dataset.offset, 10) + 1 > 1) {
 			table.dataset.offset = parseInt(table.dataset.offset, 10) - 1;
-		} else if (table.getElementsByClassName("currentpage")[0].innerText > totalpages) {
-			if (parseInt(table.dataset.offset, 10) + 1 !== totalpages) {
+		} else if (parseInt(table.getElementsByClassName("currentpage")[0].innerText, 10) > parseInt(totalpages, 10)) {
+			if (parseInt(table.dataset.offset, 10) + 1 !== parseInt(totalpages, 10)) {
 				table.dataset.offset = parseInt(totalpages, 10) - 1;
 			}
 			table.getElementsByClassName("currentpage")[0].innerText = totalpages;
@@ -1111,8 +731,14 @@ class ajaxTable {
 				"db": table.dataset.db,
 				"query": JSON.parse(table.dataset.query)
 			}
-			sql.query[Object.keys(sql.query).length - 2]["limit"] = table.dataset.limit;
-			sql.query[Object.keys(sql.query).length - 1]["offset"] = parseInt(table.dataset.offset, 10) * parseInt(table.dataset.limit, 10);
+			Object.keys(sql.query).forEach((key) => {
+				switch(Object.keys(sql.query[key])[0]) {
+					case "offset":
+						sql.query[key].offset = parseInt(table.dataset.offset, 10) * parseInt(table.dataset.limit, 10);
+						break;
+				}
+			})
+			table.dataset.query = JSON.stringify(sql.query);
 			console.log(`Query order by: ${sql.query[Object.keys(sql.query).length - 3]["order_by"][0]["identifier"]}`);
 			console.log(`Query limit: ${sql.query[Object.keys(sql.query).length - 2]["limit"]}`);
 			console.log(`Query offset: ${sql.query[Object.keys(sql.query).length - 1]["offset"]}`);
@@ -1121,13 +747,14 @@ class ajaxTable {
 	}
 
 	tableSort(element) {
-		console.log("tableSort");
-
+		console.log("%ctableSort", "color:green");
 		let table = element.closest("table");
+
 		if (table.dataset.slave || table.dataset.slave == "1") {
 			//TODO: sort on master
 			return;
 		}
+		console.log(table.dataset.direction, element.dataset.value)
 
 		if (table.dataset.order_by !== element.parentNode.dataset.column || table.dataset.direction !== element.dataset.value) {
 
@@ -1146,9 +773,9 @@ class ajaxTable {
 				default: table.dataset.direction = 'DESC';
 			}
 			table.dataset.offset = 0;
-			table.getElementsByTagName("nav")[0].getElementsByTagName("ul")[0].firstElementChild.classList.add("disabled");
+			table.getElementsByTagName("nav")[0].getElementsByTagName("div")[0].firstElementChild.classList.add("disabled");
 			table.getElementsByClassName("currentpage")[0].innerText = parseInt(table.dataset.offset, 10) + 1;
-			table.getElementsByTagName("nav")[0].getElementsByTagName("ul")[0].lastElementChild.classList.remove("disabled");
+			table.getElementsByTagName("nav")[0].getElementsByTagName("div")[0].lastElementChild.classList.remove("disabled");
 
 			let method = "GET";
 			let sql = {
@@ -1156,8 +783,17 @@ class ajaxTable {
 				"db": table.dataset.db,
 				"query": JSON.parse(table.dataset.query)
 			}
-			sql.query.limit = table.dataset.limit;
-			sql.query.offset = parseInt(table.dataset.offset, 10) * parseInt(table.dataset.limit, 10);
+			Object.keys(sql.query).forEach((key) => {
+				switch(Object.keys(sql.query[key])[0]) {
+					case "order_by":
+						sql.query[key].order_by[0].identifier = table.dataset.order_by;
+						sql.query[key].order_by[0].direction = table.dataset.direction;
+						break;
+					case "offset":
+						sql.query[key].offset = table.dataset.offset;
+				}
+			})
+			table.dataset.query = JSON.stringify(sql.query);
 			ajax(method, sql, this.tableTabulate.bind(this));
 
 		}
@@ -1165,23 +801,34 @@ class ajaxTable {
 	}
 
 	tableToggle(element) {
-
+		console.log("%ctableToggle", "color:green");
 		let table = element.closest("table");
 		let nodes = table.getElementsByClassName("collapse");
 
 		for (const node of nodes) {
-			node.classList.toggle("in");
+			node.classList.toggle("show");
 			node.toggleAttribute("aria-expanded");
 		}
 
 		element.classList.toggle("btn-primary");
 		element.classList.toggle("btn-secondary");
-		element.firstElementChild.classList.toggle("glyphicon-chevron-down");
-		element.firstElementChild.classList.toggle("glyphicon-chevron-up");
+		element.firstElementChild.classList.toggle("fa-chevron-down");
+		element.firstElementChild.classList.toggle("fa-chevron-up");
 		table.toggleAttribute("aria-expanded");
 
 	}
 
+	exportData() {
+		console.log("exportData");
+		// TODO: For each datapoint in map, asyncAJAX slave element
+		// For each datapoint in slave element, asyncAJAX slave element
+		// etc...
+		let self = this;
+		let element = this.element;
+
+		element.dataset.columns = "*";
+		ajax(element, self.exportDataAsXML.bind(self));
+	}
 }
 
 export default ajaxTable;

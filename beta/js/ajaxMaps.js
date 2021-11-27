@@ -2,7 +2,9 @@
 'use strict';
 
 import { default as ajax } from "/e107_plugins/ajaxDBQuery/beta/js/ajaxDBQuery.js";
+import { default as ajaxTable } from "/e107_plugins/ajaxTemplates/beta/js/ajaxTables.js";
 import { default as storageHandler } from "/e107_plugins/storageHandler/js/storageHandler.js";
+import { default as jsonSQL } from "/e107_plugins/jsonSQL/js/jsonSQL.js";
 
 proj4.defs([
     [
@@ -23,12 +25,12 @@ proj4.defs([
 ]);
 
 class ajaxMap {
-    constructor(element, index, object = {}) {
+    constructor(element, index, mapOptions = {}) {
         console.log("ajaxMap constructor");
 
-        for (const [key, value] of Object.entries(object)) {
-			this[key] = value;
-		}
+        for (const [key, value] of Object.entries(mapOptions)) {
+            this[key] = value;
+        }
 
         //this.callbacks = callbacks;
         this.element = element;
@@ -39,155 +41,7 @@ class ajaxMap {
         this.dataset.where = element.dataset.where;
 
         element.dataset.key = index;
-        element.setAttribute("id", "ajaxMaps[" + index + "]");
-
-        let mbAttr = 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
-        let mbUrl = 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiaG5jY294IiwiYSI6ImNrbTlxam8wdzE1N2gycGxhN3RiNHpmODkifQ.FQmxF3Bjsb8ElMnALjgO_A';
-
-        let AHN3 = L.tileLayer.wms('https://geodata.nationaalgeoregister.nl/ahn3/wms', {
-            layers: "ahn3_05m_dsm",
-            format: "image/png",
-            version: "1.3.0",
-            transparent: true,
-            opacity: 0.5,
-            crs: L.CRS.EPSG4326,
-            attribution: "Map data &copy; <a href=\"https://www.pdok.nl/\">CC BY Kadaster</a>"
-        })
-        // let defaultParameters = {
-        //     service: 'WFS',
-        //     version: '2.0.0',
-        //     request: 'GetFeature',
-        //     typeName: 'acme:pand',
-        //     maxFeatures: 200,
-        //     outputFormat: 'application/json',
-        //     srsName:'EPSG:4326'
-
-        // };
-
-        let light = L.tileLayer(mbUrl, { id: 'mapbox/light-v9', tileSize: 512, zoomOffset: -1, attribution: mbAttr }),
-            dark = L.tileLayer(mbUrl, { id: 'mapbox/dark-v10', tileSize: 512, zoomOffset: -1, attribution: mbAttr }),
-            satellite = L.tileLayer(mbUrl, { id: 'mapbox/satellite-v9', tileSize: 512, zoomOffset: -1, attribution: mbAttr }),
-            ahn3 = AHN3;
-
-        let map = L.map(element, {
-            center: [parseFloat(element.dataset.lat), parseFloat(element.dataset.lng)],
-            zoom: parseInt(element.dataset.zoom, 10),
-            cursor: true,
-            layers: [light]
-        });
-
-        let baseMaps = {
-            "Grayscale": light,
-            "Darkmode": dark,
-            "Satellite": satellite,
-            "AHN3": ahn3
-        };
-
-        let markers = {};
-        let selectedMarkers = {};
-
-        let icon = L.icon({
-            iconUrl: 'img/markers/m1_30.png',
-            iconSize: [10, 10], // size of the icon
-        });
-
-        let highlightIcon = L.icon({
-            iconUrl: 'img/markers/m1_30.png',
-            iconSize: [15, 15], // size of the icon
-        });
-
-        let selectedIcon = L.icon({
-            iconUrl: 'img/markers/m1y_0.png',
-            iconSize: [15, 15], // size of the icon
-        });
-        
-        // TODO: For each overlaymaps...
-        let overlayMaps = JSON.parse(element.dataset.overlaymaps);
-
-        Object.keys(overlayMaps).forEach(function (value) {
-            overlayMaps[value] = [];
-            overlayMaps[value]["heat"] = L.heatLayer([], {});
-            //overlayMaps[value] = L.layerGroup();
-            //overlayMaps[value] = L.conditionalMarkers([], {maxMarkers: 300});
-
-            overlayMaps[value]["markers"] = L.markerClusterGroup({
-                showCoverageOnHover: true,
-                zoomToBoundsOnClick: true,
-                spiderfyOnMaxZoom: false,
-                removeOutsideVisibleBounds: true,
-                animate: true,
-                animateAddingMarkers: false,
-                disableClusteringAtZoom: element.dataset.zoomlevel,
-                //maxClusterRadius: 80,'
-                singleMarkerMode: false,
-                spiderLegPolylineOptions: {
-                    weight: 1.5,
-                    color: '#222',
-                    opacity: 0.5
-                },
-
-                //spiderfyDistanceMultiplier: 1,
-
-                iconCreateFunction: function (cluster) {
-                    return L.divIcon({ html: '<div><span>' + cluster.getChildCount() + '</span></div>' });
-                },
-
-                iconCreateFunction: function (e) {
-                    var t = e.getChildCount(),
-                        i = " marker-cluster-",
-                        text = t,
-                        size = 40;
-                    if (t >= self.element.dataset.limit) {
-                        var text = "&#128269;";
-                        var size = 80;
-                    }
-
-                    return i += 10 > t ? "small" : 100 > t ? "medium" : self.element.dataset.limit > t ? "large" : "xxl", new L.DivIcon({
-                        html: "<div><span>" + text + "</span></div>", className: "marker-cluster" + i, iconSize: new L.Point(size, size)
-                    })
-                },
-
-                spiderfyShapePositions: function (count, centerPt) {
-                    var distanceFromCenter = 35,
-                        markerDistance = 45,
-                        lineLength = markerDistance * (count - 1),
-                        lineStart = centerPt.y - lineLength / 2,
-                        res = [],
-                        i;
-
-                    res.length = count;
-
-                    for (i = count - 1; i >= 0; i--) {
-                        res[i] = new Point(centerPt.x + distanceFromCenter, lineStart + markerDistance * i);
-                    }
-
-                    return res;
-                },
-
-                //clusterPane: '',
-            });
-
-        });
-
-        // TODO: For each overlayMap
-        // overlayMaps.Boreholes.heat.addTo(map);
-        // overlayMaps['Boreholes']['heat'].addTo(map);
-        // overlayMaps['Boreholes']['markers'].addTo(map);
-
-        let overlayGroups = {};
-        overlayGroups["boreholes"] = L.layerGroup();
-        if (map.getZoom() < parseInt(element.dataset.zoomlevel, 10)) {
-            overlayMaps[Object.keys(overlayMaps)[0]]["heat"].addTo(overlayGroups["boreholes"])
-        }
-        overlayMaps[Object.keys(overlayMaps)[0]]["markers"].addTo(overlayGroups["boreholes"])
-        overlayGroups["boreholes"].addTo(map);
-
-        //overlayMaps[Object.keys(overlayMaps)[0]]["heat"].addTo(overlayGroups["boreholes"]);
-        //overlayMaps[Object.keys(overlayMaps)[0]]["markers"].addTo(overlayGroups["boreholes"]);
-
-        L.control.layers(baseMaps, { "Boreholes": overlayGroups["boreholes"] }).addTo(map);
-
-        L.control.scale({maxWidth: 200}).addTo(map);
+        element.setAttribute("id", `ajaxMaps[${index}]`);
 
         // http://leafletjs.com/reference-1.1.0.html#class-constructor-hooks
         L.Map.addInitHook(function () {
@@ -197,11 +51,350 @@ class ajaxMap {
             this.getContainer()._leaflet_map = this;
         });
 
+        let mbAttr = 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+        let mbUrl = 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiaG5jY294IiwiYSI6ImNrbTlxam8wdzE1N2gycGxhN3RiNHpmODkifQ.FQmxF3Bjsb8ElMnALjgO_A';
+
+        let light = L.tileLayer(mbUrl, { id: "mapbox/light-v9", tileSize: 512, zoomOffset: -1, attribution: mbAttr }),
+            dark = L.tileLayer(mbUrl, { id: "mapbox/dark-v10", tileSize: 512, zoomOffset: -1, attribution: mbAttr }),
+            satellite = L.tileLayer(mbUrl, { id: "mapbox/satellite-v9", tileSize: 512, zoomOffset: -1, attribution: mbAttr });
+
+        if (mapOptions._defaults) {
+            var crs = mapOptions._defaults?.crs || L.CRS.EPSG3857,
+                lat = mapOptions._defaults?.lat || 0,
+                lng = mapOptions._defaults?.lng || 0,
+                zoom = mapOptions._defaults?.zoom || 1,
+                minZoom = mapOptions._defaults?.minZoom,
+                maxZoom = mapOptions._defaults?.maxZoom;
+        } else {
+            var crs = L.CRS.EPSG3857,
+                lat = 0,
+                lng = 0,
+                zoom = 1;
+        }
+
+        // TODO: make array of layers
+        if (mapOptions._baseMaps) {
+            var layers = [];
+            switch (mapOptions._baseMaps?.layers) {
+                case 'dark':
+                    layers.push(dark);
+                    break;
+                default:
+                    layers.push(light);
+                    break;
+            }
+        } else {
+            var layers = [light];
+        }
+
+        let map = L.map(element, {
+            preferCanvas: false,
+            attributionControl: true,
+            zoomControl: true,
+            closePopupOnClick: true,
+            zoomSnap: 1,
+            zoomDelta: 1,
+            trackResize: true,
+            boxZoom: true,
+            doubleClickZoom: true,
+            dragging: true,
+            cursor: true,
+            crs: crs,
+            center: [lat, lng],
+            zoom: zoom,
+            minZoom: minZoom,
+            maxZoom: maxZoom,
+            layers: layers
+        });
+
+        let baseMaps = {
+            "Grayscale": light,
+            "Darkmode": dark,
+            "Satellite": satellite
+        };
+
+        let markers = {};
+        let selectedMarkers = {};
+        let icon = L.icon({
+            iconUrl: "img/markers/m1_30.png",
+            iconSize: [10, 10], // size of the icon
+        });
+        let highlightIcon = L.icon({
+            iconUrl: "img/markers/m1_30.png",
+            iconSize: [15, 15], // size of the icon
+        });
+        let selectedIcon = L.icon({
+            iconUrl: "img/markers/m1y_0.png",
+            iconSize: [15, 15], // size of the icon
+        });
+
+        var overlayMaps = {};
+        //var _overlayMaps = {};
+        var overlayGroups = {};
+        var _overlayGroups = {};
+        for (let [key, value] of Object.entries(this._overlayMaps)) {
+
+            // if(value?.icons?.icon) {
+            //     value.icons.icon = L.icon({
+            //         iconUrl: value.icons.icon.iconUrl,
+            //         iconSize: value.icons.icon.iconSize
+            //     })
+            //                 console.log(value.icons.icon);
+            // }
+
+            let url = value.layerParams.url;
+            let layerOptions = value.layerOptions;
+
+            // value.icons.icon = L.icon({
+            //     iconUrl: value.icons.icon.iconUrl,
+            //     iconSize: value.icons.icon.iconSize
+            // });
+
+            // console.log(value.icons.icon);
+
+            // let icon = L.icon({
+            //     iconUrl: "img/markers/m1_30.png",
+            //     iconSize: [10, 10], // size of the icon
+            // });
+            // let highlightIcon = L.icon({
+            //     iconUrl: "img/markers/m1_30.png",
+            //     iconSize: [15, 15], // size of the icon
+            // });
+            // let selectedIcon = L.icon({
+            //     iconUrl: "img/markers/m1y_0.png",
+            //     iconSize: [15, 15], // size of the icon
+            // });
+
+
+            if (value.layerParams.cacheReturn == true && storageHandler.storage.session.get(key)) {
+                storageHandler.storage.session.remove(key);
+            }
+
+            switch (value.layerType) {
+                case "tileLayer.WMS":
+                    overlayMaps[key] = L.tileLayer.wms(url, layerOptions);
+                    break;
+                case "tileLayer":
+                    overlayMaps[key] = L.tileLayer(url, layerOptions);
+                    break;
+                case "markerLayer":
+                    overlayGroups[key] = L.layerGroup();
+                    _overlayGroups[key] = {};
+                    _overlayGroups[key].icons = {};
+                    _overlayGroups[key].icons.icon = L.icon({
+                        iconUrl: value.icons.icon.iconUrl,
+                        iconSize: value.icons.icon.iconSize
+                    });
+                    _overlayGroups[key].icons.highlightIcon = L.icon({
+                        iconUrl: value.icons.highlightIcon.iconUrl,
+                        iconSize: value.icons.highlightIcon.iconSize
+                    });
+                    _overlayGroups[key].icons.selectedIcon = L.icon({
+                        iconUrl: value.icons.selectedIcon.iconUrl,
+                        iconSize: value.icons.selectedIcon.iconSize
+                    });
+                    _overlayGroups[key].markers = {};
+                    _overlayGroups[key]["markerLayer"] = L.layerGroup();
+                    overlayGroups[key].addLayer(_overlayGroups[key]["markerLayer"]);
+                    overlayMaps[key] = overlayGroups[key];
+                    break;
+                case "markerClusterGroup":
+                    overlayGroups[key] = L.layerGroup();
+                    _overlayGroups[key] = {};
+                    _overlayGroups[key].icons = {};
+                    _overlayGroups[key].icons.icon = L.icon({
+                        iconUrl: value.icons.icon.iconUrl,
+                        iconSize: value.icons.icon.iconSize
+                    });
+                    _overlayGroups[key].icons.highlightIcon = L.icon({
+                        iconUrl: value.icons.highlightIcon.iconUrl,
+                        iconSize: value.icons.highlightIcon.iconSize
+                    });
+                    _overlayGroups[key].icons.selectedIcon = L.icon({
+                        iconUrl: value.icons.selectedIcon.iconUrl,
+                        iconSize: value.icons.selectedIcon.iconSize
+                    });
+                    _overlayGroups[key].markers = {};
+                    _overlayGroups[key]["markerLayer"] = L.markerClusterGroup({
+                        showCoverageOnHover: true,
+                        zoomToBoundsOnClick: true,
+                        spiderfyOnMaxZoom: false,
+                        removeOutsideVisibleBounds: true,
+                        animate: true,
+                        animateAddingMarkers: false,
+                        disableClusteringAtZoom: value.layerParams.disableClusteringAtZoom || 14,
+                        maxClusterRadius: value.layerParams.maxClusterRadius || 80,
+                        singleMarkerMode: false,
+                        spiderLegPolylineOptions: {
+                            weight: 1.5,
+                            color: '#222',
+                            opacity: 0.5
+                        },
+                        spiderfyDistanceMultiplier: 1,
+                        // iconCreateFunction: function (cluster) {
+                        //     return L.divIcon({ html: '<div><span>' + cluster.getChildCount() + '</span></div>' });
+                        // },
+                        iconCreateFunction: function (e) {
+                            var t = e.getChildCount(),
+                                i = " marker-cluster-",
+                                layer = key.replace(/\s+/g, '-').toLowerCase(),
+                                text = t,
+                                size = 40;
+                            if (t >= value.layerParams.limit) {
+                                var text = "&#128269;";
+                                var size = 80;
+                            }
+                            return i += 10 > t ? "small" : 100 > t ? "medium" : value.layerParams.limit > t ? "large" : "xxl", new L.DivIcon({
+                                html: `<div><span>${text}</span></div>`, className: `marker-cluster marker-cluster-${layer} ${i}`, iconSize: new L.Point(size, size)
+                            })
+                        },
+                        spiderfyShapePositions: function (count, centerPt) {
+                            var distanceFromCenter = 35,
+                                markerDistance = 45,
+                                lineLength = markerDistance * (count - 1),
+                                lineStart = centerPt.y - lineLength / 2,
+                                res = [],
+                                i;
+
+                            res.length = count;
+
+                            for (i = count - 1; i >= 0; i--) {
+                                res[i] = new Point(centerPt.x + distanceFromCenter, lineStart + markerDistance * i);
+                            }
+
+                            return res;
+                        },
+                        clusterPane: 'markerPane',
+                    });
+                    overlayGroups[key].addLayer(_overlayGroups[key]["markerLayer"]);
+                    overlayMaps[key] = overlayGroups[key]
+                    break;
+                case "heatLayer":
+                    overlayGroups[key] = L.layerGroup();
+                    _overlayGroups[key] = {};
+                    _overlayGroups[key]["heatLayer"] = L.heatLayer([], {});
+                    overlayGroups[key].addLayer(_overlayGroups[key]["heatLayer"]);
+                    overlayMaps[key] = overlayGroups[key];
+                    break;
+                case "layerGroup":
+                    overlayGroups[key] = L.layerGroup();
+                    _overlayGroups[key] = {};
+                    _overlayGroups[key].icons = {};
+                    _overlayGroups[key].icons.icon = L.icon({
+                        iconUrl: value.icons.icon.iconUrl,
+                        iconSize: value.icons.icon.iconSize
+                    });
+                    _overlayGroups[key].icons.highlightIcon = L.icon({
+                        iconUrl: value.icons.highlightIcon.iconUrl,
+                        iconSize: value.icons.highlightIcon.iconSize
+                    });
+                    _overlayGroups[key].icons.selectedIcon = L.icon({
+                        iconUrl: value.icons.selectedIcon.iconUrl,
+                        iconSize: value.icons.selectedIcon.iconSize
+                    });
+                    _overlayGroups[key].markers = {};
+                    _overlayGroups[key]["heatLayer"] = L.heatLayer([], {});
+                    _overlayGroups[key]["markerLayer"] = L.markerClusterGroup({
+                        showCoverageOnHover: true,
+                        zoomToBoundsOnClick: true,
+                        spiderfyOnMaxZoom: false,
+                        removeOutsideVisibleBounds: true,
+                        animate: true,
+                        animateAddingMarkers: false,
+                        disableClusteringAtZoom: value.layerParams.zoomlevel,
+                        maxClusterRadius: 80,
+                        //polygonOptions: '',
+                        singleMarkerMode: true,
+                        spiderLegPolylineOptions: {
+                            weight: 1.5,
+                            color: '#222',
+                            opacity: 0.5
+                        },
+                        spiderfyDistanceMultiplier: 1,
+                        // iconCreateFunction: function (cluster) {
+                        //     return L.divIcon({ html: '<div><span>' + cluster.getChildCount() + '</span></div>' });
+                        // },
+                        iconCreateFunction: function (e) {
+                            var t = e.getChildCount(),
+                                i = " marker-cluster-",
+                                text = t,
+                                size = 40;
+                            if (t >= value.layerParams.limit) {
+                                // TODO: if limit < totalrecords..
+                                text = "&#128269;";
+                                size = 80;
+                            }
+
+                            return i += 10 > t ? "small" : 100 > t ? "medium" : value.layerParams.limit > t ? "large" : "xxl", new L.DivIcon({
+                                html: `<div><span>${text}</span></div>`, className: `marker-cluster ${i}`, iconSize: new L.Point(size, size)
+                            })
+                        },
+                        spiderfyShapePositions: function (count, centerPt) {
+                            var distanceFromCenter = 35,
+                                markerDistance = 45,
+                                lineLength = markerDistance * (count - 1),
+                                lineStart = centerPt.y - lineLength / 2,
+                                res = [],
+                                i;
+
+                            res.length = count;
+
+                            for (i = count - 1; i >= 0; i--) {
+                                res[i] = new Point(centerPt.x + distanceFromCenter, lineStart + markerDistance * i);
+                            }
+
+                            return res;
+                        },
+                        clusterPane: 'markerPane',
+                    });
+                    overlayGroups[key].addLayer(_overlayGroups[key]["heatLayer"]);
+                    overlayGroups[key].addLayer(_overlayGroups[key]["markerLayer"]);
+                    overlayMaps[key] = overlayGroups[key]
+                    break;
+                default:
+                    overlayMaps[key] = L.tileLayer(url, layerOptions);
+            }
+
+            // (overlayGroups[key]) ? overlayMaps[key] = overlayGroups[key] : null;
+            if (value.layerParams.addToMap) {
+                map.addLayer(overlayMaps[key]);
+            }
+
+        }
+        // overlayMaps object structure:
+        // overlayMaps = { layer: overlayGroups[layer], layer: overlayGroups[layer] }
+        L.control.layers(baseMaps, overlayMaps).addTo(map);
+        L.control.scale({ position: 'bottomleft', maxWidth: 200 }).addTo(map);
+
+        L.Polyline.include({
+            contains: function () { return; }
+        });
+        L.Polygon.include({
+            contains: function (latLng) {
+                return turf.inside(new L.Marker(latLng).toGeoJSON(), this.toGeoJSON());
+            }
+        });
+        L.Rectangle.include({
+            contains: function (latLng) {
+                return this.getBounds().contains(latLng);
+            }
+        });
+        L.Circle.include({
+            contains: function (latLng) {
+                return this.getLatLng().distanceTo(latLng) < this.getRadius();
+            }
+        });
+        L.CircleMarker.include({
+            contains: function () {
+                return this.getLatLng();
+            }
+        });
+
         var drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
         var options = {
-            position: 'topleft',
+            position: "topleft",
             draw: {
                 polyline: false,
                 polygon: false,
@@ -219,35 +412,6 @@ class ajaxMap {
                 remove: true
             }
         };
-
-        L.Polyline.include({
-            contains: function () { return; }
-        });
-
-        L.Polygon.include({
-            contains: function (latLng) {
-                return turf.inside(new L.Marker(latLng).toGeoJSON(), this.toGeoJSON());
-            }
-        });
-
-        L.Rectangle.include({
-            contains: function (latLng) {
-                return this.getBounds().contains(latLng);
-            }
-        });
-
-        L.Circle.include({
-            contains: function (latLng) {
-                return this.getLatLng().distanceTo(latLng) < this.getRadius();
-            }
-        });
-
-        L.CircleMarker.include({
-            contains: function () {
-                return this.getLatLng();
-            }
-        });
-
         var drawControl = new L.Control.Draw(options);
         map.addControl(drawControl);
 
@@ -299,7 +463,7 @@ class ajaxMap {
                 var projCoordSW = Object.assign({}, proj4(fromProjection, toProjection).forward([xmin, ymin]));
                 var projCoordNE = Object.assign({}, proj4(fromProjection, toProjection).forward([xmax, ymax]));
 
-                var projCoord = { 
+                var projCoord = {
                     '_southWest': {
                         'lat': projCoordSW[1],
                         'lng': projCoordSW[0]
@@ -314,7 +478,8 @@ class ajaxMap {
                     if (map.hasLayer(overlayMaps[key]["markers"])) {
                         overlayMaps[key]["markers"].eachLayer(function (marker) {
                             if (layer.contains(marker.getLatLng())) {
-                                markers[marker.properties.id].setIcon(selectedIcon);
+                                // markers[marker.properties.id].setIcon(selectedIcon);
+                                marker.setIcon(marker.selectedIcon);
                                 selectedMarkers[marker.properties.id] = marker;
                             }
                         })
@@ -322,16 +487,16 @@ class ajaxMap {
                 })
 
                 var output = "Area: " + L.GeometryUtil.readableArea(area, true);
-                    output += "<br>";
-                    output += "( "+ parseFloat(projCoord._northEast.lng - projCoord._southWest.lng).toFixed(0) + " x " + parseFloat(projCoord._northEast.lat - projCoord._southWest.lat).toFixed(0) + "m )";
-                    output += "<br>";
-                    output += "<br>";
-                    output += "# Features selected: " + Object.keys(selectedMarkers).length;
-                    output += "<br>";
-                    output += "<br>";
-                    output += "SW(Xmin,Ymin): " + parseFloat(projCoord._southWest.lng.toFixed(0)) + ", " + parseFloat(projCoord._southWest.lat.toFixed(0));
-                    output += "<br>";
-                    output += "NE(Xmax,Ymax): " + parseFloat(projCoord._northEast.lng.toFixed(0)) + ", " + parseFloat(projCoord._northEast.lat.toFixed(0));
+                output += "<br>";
+                output += "( " + parseFloat(projCoord._northEast.lng - projCoord._southWest.lng).toFixed(0) + " x " + parseFloat(projCoord._northEast.lat - projCoord._southWest.lat).toFixed(0) + "m )";
+                output += "<br>";
+                output += "<br>";
+                output += "# Features selected: " + Object.keys(selectedMarkers).length;
+                output += "<br>";
+                output += "<br>";
+                output += "SW(Xmin,Ymin): " + parseFloat(projCoord._southWest.lng.toFixed(0)) + ", " + parseFloat(projCoord._southWest.lat.toFixed(0));
+                output += "<br>";
+                output += "NE(Xmax,Ymax): " + parseFloat(projCoord._northEast.lng.toFixed(0)) + ", " + parseFloat(projCoord._northEast.lat.toFixed(0));
                 return output;
 
                 //return L.GeometryUtil.readableArea(area, true);
@@ -352,6 +517,88 @@ class ajaxMap {
             return null;
         };
 
+        if (!element.dataset.zoom) { element.dataset.zoom = 7 }
+
+        this.map = map;
+        this.overlayMaps = overlayMaps;
+        this.overlayGroups = overlayGroups;
+        this._overlayGroups = _overlayGroups;
+        this.bounds = map.getBounds();
+        this.markers = markers;
+        this.icon = icon;
+        this.highlightIcon = highlightIcon;
+        this.selectedIcon = selectedIcon;
+        this.selectedMarkers = selectedMarkers;
+        this.drawnItems = drawnItems;
+        let self = this;
+
+        // var div = document.createElement("div");
+        // div.classList.add("row");
+        // div.style.position = "absolute";
+        // div.style.bottom = "0px";
+        // div.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
+        // div.style.width = "100vw";
+        // div.style.marginLeft = "-25%";
+        // div.style.marginRight = "-25%";
+        // div.style.fontSize = "11px";
+
+        // var left = document.createElement("div");
+        // left.classList.add("col-xs-6");
+        // var output = document.createElement("output");
+        // output.setAttribute("id", "mapinfocoordinates");
+        // output.style.display = "inline-grid";
+        // output.style.padding = "0";
+        // output.style.fontSize = "inherit";
+        // left.appendChild(output);
+        // left.appendChild(document.createElement("BR"));
+
+        // var span = document.createElement("SPAN");
+        // span.innerText = "SW(Xmin,Ymin): ";
+        // left.appendChild(span);
+        // var output = document.createElement("output");
+        // output.setAttribute("id", "mapinfo_bounds_sw");
+        // output.style.display = "inline-grid";
+        // output.style.padding = "0";
+        // output.style.fontSize = "inherit";
+        // left.appendChild(output);
+        // left.appendChild(document.createElement("BR"));
+
+        // var span = document.createElement("SPAN");
+        // span.innerText = "NE(Xmax,Ymax): ";
+        // left.appendChild(span);
+        // var output = document.createElement("output");
+        // output.setAttribute("id", "mapinfo_bounds_ne");
+        // output.style.display = "inline-grid";
+        // output.style.padding = "0";
+        // output.style.fontSize = "inherit";
+        // left.appendChild(output);
+
+        // var center = document.createElement("div");
+        // center.classList.add("col-xs-4");
+        // center.appendChild(document.createElement("BR"));
+        // var span = document.createElement("SPAN");
+        // span.setAttribute("id", "totalrecords");
+        // span.innerText = "# Features in map view: ";
+        // center.appendChild(span);
+
+        // var right = document.createElement("div");
+        // right.classList.add("col-xs-2");
+        // right.style.margin = "3px 0px";
+        // var button = document.createElement("button");
+        // button.classList.add("btn", "btn-default", "pull-right");
+        // var span = document.createElement("SPAN");
+        // span.classList.add("glyphicon", "glyphicon-save");
+        // span.setAttribute("aria-hidden", "true");
+        // button.appendChild(span);
+        // button.addEventListener("click", function () {
+        //     this.exportData();
+        // });
+        // right.appendChild(button);
+        // div.appendChild(left);
+        // div.appendChild(center);
+        // div.appendChild(right);
+        // element.parentNode.parentNode.insertBefore(div, element.parentNode.nextElementSibling);
+
         var bounds = map.getBounds();
         var center = map.getCenter();
         var lat, lng, xmin, ymin, xmax, ymax, srid;
@@ -363,89 +610,8 @@ class ajaxMap {
         ymax = bounds._northEast.lat;
         srid = 4326;
 
-        if (!element.dataset.zoom) { element.dataset.zoom = 7 }
-        element.dataset.columns = element.dataset.columns.replace(":lat", lat).replace(":lng", lng);
-        element.dataset.order_by = element.dataset.order_by.replace(":lat", lat).replace(":lng", lng);
-        element.dataset.where = element.dataset.where.replace(":xmin", xmin).replace(":xmax", xmax).replace(":ymin", ymin).replace(":ymax", ymax);
-
-        this.map = map;
-        this.overlayMaps = overlayMaps;
-        this.overlayGroups = overlayGroups;
-        this.bounds = map.getBounds();
-        this.markers = markers;
-        this.icon = icon;
-        this.highlightIcon = highlightIcon;
-        this.selectedIcon = selectedIcon;
-        this.selectedMarkers = selectedMarkers;
-        this.drawnItems = drawnItems;
-        let self = this;
-
-        var div = document.createElement("div");
-        div.classList.add("row");
-        div.style.position = "absolute";
-        div.style.bottom = "0px";
-        div.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
-        div.style.width = "100vw";
-        div.style.marginLeft = "-25%";
-        div.style.marginRight = "-25%";
-        div.style.fontSize = "11px";
-        var left = document.createElement("div");
-        left.classList.add("col-xs-6");
-        var output = document.createElement("output");
-        output.setAttribute("id", "mapinfocoordinates");
-        output.style.display = "inline-grid";
-        output.style.padding = "0";
-        output.style.fontSize = "inherit";
-        left.appendChild(output);
-        left.appendChild(document.createElement("BR"));
-
-        var span = document.createElement("SPAN");
-        span.innerText = "SW(Xmin,Ymin): ";
-        left.appendChild(span);
-        var output = document.createElement("output");
-        output.setAttribute("id", "mapinfo_bounds_sw");
-        output.style.display = "inline-grid";
-        output.style.padding = "0";
-        output.style.fontSize = "inherit";
-        left.appendChild(output);
-
-        left.appendChild(document.createElement("BR"));
-
-        var span = document.createElement("SPAN");
-        span.innerText = "NE(Xmax,Ymax): ";
-        left.appendChild(span);
-        var output = document.createElement("output");
-        output.setAttribute("id", "mapinfo_bounds_ne");
-        output.style.display = "inline-grid";
-        output.style.padding = "0";
-        output.style.fontSize = "inherit";
-        left.appendChild(output);
-
-        var center = document.createElement("div");
-        center.classList.add("col-xs-4");
-        center.appendChild(document.createElement("BR"));
-        var span = document.createElement("SPAN");
-        span.setAttribute("id", "totalrecords");
-        span.innerText = "# Features in map view: ";
-        center.appendChild(span);
-
-        var right = document.createElement("div");
-        right.classList.add("col-xs-2");
-        right.style.margin = "3px 0px";
-        var button = document.createElement("button");
-        button.classList.add("btn", "btn-default", "pull-right");
-        var span = document.createElement("SPAN");
-        span.classList.add("glyphicon", "glyphicon-save");
-        span.setAttribute("aria-hidden", "true");
-        button.appendChild(span);
-        button.addEventListener("click", function () {
-            Maps[element.dataset.key].exportData();
-        });
-        right.appendChild(button);
-        div.appendChild(left);
-        div.appendChild(center);
-        div.appendChild(right);
-        element.parentNode.parentNode.insertBefore(div, element.parentNode.nextElementSibling);
+        // document.getElementById("mapinfo_bounds_ne").innerHTML = xmax + ", " + ymax;
+        // document.getElementById("mapinfo_bounds_sw").innerHTML = xmin + ", " + ymin;
 
         var fromProjection = 'EPSG:4326';
         switch (element.dataset.table) {
@@ -458,225 +624,187 @@ class ajaxMap {
                 break;
         }
 
-        // document.getElementById("mapinfo_bounds_ne").innerHTML = xmax + ", " + ymax;
-        // document.getElementById("mapinfo_bounds_sw").innerHTML = xmin + ", " + ymin;
+        if (document.querySelector("mapinfocoordinates")) {
 
-        var projCoordNE = proj4(fromProjection, toProjection).forward([xmax, ymax]);
-        var projCoordSW = proj4(fromProjection, toProjection).forward([xmin, ymin]);
+            var projCoordNE = proj4(fromProjection, toProjection).forward([xmax, ymax]);
+            var projCoordSW = proj4(fromProjection, toProjection).forward([xmin, ymin]);
 
-        document.getElementById("mapinfo_bounds_ne").innerHTML = parseFloat(projCoordNE[0].toFixed(0)) + ", " + parseFloat(projCoordNE[1].toFixed(0));
-        document.getElementById("mapinfo_bounds_sw").innerHTML = parseFloat(projCoordSW[0].toFixed(0)) + ", " + parseFloat(projCoordSW[1].toFixed(0));
+            document.getElementById("mapinfo_bounds_ne").innerHTML = parseFloat(projCoordNE[0].toFixed(0)) + ", " + parseFloat(projCoordNE[1].toFixed(0));
+            document.getElementById("mapinfo_bounds_sw").innerHTML = parseFloat(projCoordSW[0].toFixed(0)) + ", " + parseFloat(projCoordSW[1].toFixed(0));
+
+        }
 
         // TODO: For each (hasLayer = true) then...
-        Object.keys(overlayMaps).forEach(function (value) {
-            if (map.hasLayer(overlayMaps[value]["markers"])) {
-                let method = "GET";
-                let sql = {
-                    "url": map.dataset.url,
-                    "db": map.dataset.db,
-                    "query": JSON.parse(map.dataset.query)
+        Object.keys(overlayMaps).forEach(function (layer) {
+            if (map.hasLayer(overlayMaps[layer]) && self._overlayMaps[layer].layerType !== "TileLayer.WMS") {
+                self.layerUpdate(layer);
+
+                if (self._overlayGroups[layer]?.["markerLayer"]) {
+                    self.tableCreate(layer);
                 }
-                // let sql = {
-                //     "query": {
-                //         "url": element.dataset.url,
-                //         "db": element.dataset.db,
-                //         "select": {
-                //             "columns": {
-                //                 0: element.dataset.columns
-                //             }
-                //         },
-                //         "from": {
-                //             "table": element.dataset.table
-                //         },
-                //         "inner_join": element.dataset.inner_join,
-                //         "where": element.dataset.where,
-                //         "order_by": element.dataset.order_by,
-                //         "direction": element.dataset.direction,
-                //         "limit": element.dataset.limit,
-                //         "offset": element.dataset.offset
-                //     }
-                // };
-                ajax(method, sql, self.layerUpdate.bind(self));
             }
         })
 
         var refresh;
-
         map.on('overlayadd', e => {
-            if (map.hasLayer(overlayMaps[e.name]["markers"])) {
-                let sql = {
-                    "query": {
-                        "url": element.dataset.url,
-                        "db": element.dataset.db,
-                        "select": {
-                            "columns": {
-                                0: element.dataset.columns
-                            }
-                        },
-                        "from": {
-                            "table": element.dataset.table
-                        },
-                        "inner_join": element.dataset.inner_join,
-                        "where": element.dataset.where,
-                        "order_by": element.dataset.order_by,
-                        "direction": element.dataset.direction,
-                        "limit": element.dataset.limit,
-                        "offset": element.dataset.offset
-                    }
-                };
-                ajax(sql, "GET", this.layerUpdate.bind(this));
+            console.info(`%coverlayadd`, `color:#28a745`)
+            if (map.hasLayer(overlayMaps[e.name]) && self._overlayMaps[e.name].layerType !== "TileLayer.WMS") {
+                if (_overlayGroups[e.name]?.["markerLayer"]) {
+                    self.layerUpdate(e.name, self.tableCreate(e.name));
+                } else {
+                    self.layerUpdate(e.name);
+                }
             }
         })
+        map.on('overlayremove', e => {
+            console.info(`%coverlayremove`, `color:#28a745`)
+            var startTime = performance.now()
+            if (!map.hasLayer(overlayMaps[e.name]) && self._overlayMaps[e.name].layerType !== "TileLayer.WMS") {
+                if (document.getElementById(this.element.id).parentElement.querySelector('nav')) {
+                    var tableTabs = document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.children;
+                    var tablePanes = document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').children;
+                    for (var i = 0; i < tableTabs.length; i++) {
+                        if (!map.hasLayer(overlayMaps[tableTabs[i].innerText])) {
+                            var tableTab = tableTabs[i];
+                            var tablePane = tablePanes[i];
+                            // Check if current tab was the active tab..
+                            if (tableTab.classList.contains('active')) {
+                                tableTabs[0].firstElementChild.classList.add('active');
+                            }
+                            if (tablePane.classList.contains('show', 'active')) {
+                                tablePanes[0].classList.add('show', 'active');
+                            }
+                            console.log(tablePanes[i].querySelector('table').dataset.index);
+                            console.log(window["ajaxTables"]);
+                            window["ajaxTables"].splice(tablePanes[i].querySelector('table').dataset.index, 1);
+                            console.log(window["ajaxTables"]);
+                            // let value = parseInt(tablePanes[i].querySelector('table').dataset.index, 10);
+                            // window["ajaxTables"] = window["ajaxTables"].filter(item => item !== value);
+                            document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.removeChild(tableTab);
+                            document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').removeChild(tablePane);
+                        }
+                    }
+                    var x = tableTabs.length;
+                    if (x == 0) {
+                        var nav = document.getElementById(self.element.id).parentElement.querySelector('nav');
+                        var div = document.getElementById(self.element.id).parentElement.querySelector('div.tab-content');
+                        document.getElementById(self.element.id).style.height = "100%";
+                        document.getElementById(self.element.id).parentElement.removeChild(nav);
+                        document.getElementById(self.element.id).parentElement.removeChild(div);
+                    }
+    
+                }
+            }
+            var endTime = performance.now()
+            console.log(`Call to layerremove took ${endTime - startTime} milliseconds`)
+        })
         map.on('layeradd', e => {
-            //console.log(e);
+            //console.log('layeradd');
         })
         map.on('layerremove', e => {
-            //console.log(e);
+            console.info(`%clayerremove`, `color:#28a745`)
         })
         map.on('dragstart', e => {
+            console.log('dragstart')
             clearTimeout(refresh);
         })
         map.on('drag', e => {
             console.log('dragging');
         })
         map.on('dragend', e => {
+            console.log('dragend');
             refresh = setTimeout(() => {
 
-                var bounds = this.map.getBounds();
-                var center = this.map.getCenter();
-                var lat, lng, xmin, ymin, xmax, ymax, srid;
-                lat = center.lat;
-                lng = center.lng;
-                xmin = bounds._southWest.lng;
-                ymin = bounds._southWest.lat;
-                xmax = bounds._northEast.lng;
-                ymax = bounds._northEast.lat;
-                srid = 4326;
-
-                //element.dataset.columns = this.dataset.columns;
-                element.dataset.order_by = this.dataset.order_by;
-                element.dataset.where = this.dataset.where;
-                //element.dataset.columns = element.dataset.columns.replace(":lat", lat).replace(":lng", lng);
-                element.dataset.order_by = element.dataset.order_by.replace(":lat", lat).replace(":lng", lng);
-                element.dataset.where = element.dataset.where.replace(":xmin", xmin).replace(":xmax", xmax).replace(":ymin", ymin).replace(":ymax", ymax);
-
-                // TODO: get ajax request for each layer which is true and add to array
-                Object.keys(overlayMaps).forEach(function (value) {
-                    if (map.hasLayer(overlayMaps[value]["markers"])) {
-                        let sql = {
-                            "query": {
-                                "url": element.dataset.url,
-                                "db": element.dataset.db,
-                                "select": {
-                                    "columns": {
-                                        0: element.dataset.columns
-                                    }
-                                },
-                                "from": {
-                                    "table": element.dataset.table
-                                },
-                                "inner_join": element.dataset.inner_join,
-                                "where": element.dataset.where,
-                                "order_by": element.dataset.order_by,
-                                "direction": element.dataset.direction,
-                                "limit": element.dataset.limit,
-                                "offset": element.dataset.offset
-                            }
-                        };
-                        ajax(sql, "GET", self.layerUpdate.bind(self));
+                Object.keys(overlayMaps).forEach(function (key) {
+                    if (map.hasLayer(overlayMaps[key])) {
+                        self.layerUpdate(key);
                     }
                 })
+
+                // var bounds = this.map.getBounds();
+                // var center = this.map.getCenter();
+                // var lat, lng, xmin, ymin, xmax, ymax, srid;
+                // lat = center.lat;
+                // lng = center.lng;
+                // xmin = bounds._southWest.lng;
+                // ymin = bounds._southWest.lat;
+                // xmax = bounds._northEast.lng;
+                // ymax = bounds._northEast.lat;
+                // srid = 4326;
 
                 // document.getElementById("mapinfo_bounds_ne").innerHTML = xmax + ", " + ymax;
                 // document.getElementById("mapinfo_bounds_sw").innerHTML = xmin + ", " + ymin;
 
-                var projCoordNE = proj4(fromProjection, toProjection).forward([xmax, ymax]);
-                var projCoordSW = proj4(fromProjection, toProjection).forward([xmin, ymin]);
+                // var projCoordNE = proj4(fromProjection, toProjection).forward([xmax, ymax]);
+                // var projCoordSW = proj4(fromProjection, toProjection).forward([xmin, ymin]);
 
-                document.getElementById("mapinfo_bounds_ne").innerHTML = parseFloat(projCoordNE[0].toFixed(0)) + ", " + parseFloat(projCoordNE[1].toFixed(0));
-                document.getElementById("mapinfo_bounds_sw").innerHTML = parseFloat(projCoordSW[0].toFixed(0)) + ", " + parseFloat(projCoordSW[1].toFixed(0));
+                // document.getElementById("mapinfo_bounds_ne").innerHTML = parseFloat(projCoordNE[0].toFixed(0)) + ", " + parseFloat(projCoordNE[1].toFixed(0));
+                // document.getElementById("mapinfo_bounds_sw").innerHTML = parseFloat(projCoordSW[0].toFixed(0)) + ", " + parseFloat(projCoordSW[1].toFixed(0));
 
-            }, 200);
+            }, 1000);
         })
         map.on('zoomstart', e => {
+            console.log(`zoomstart`);
             clearTimeout(refresh);
         })
         map.on('zoom', e => {
-            console.log('zooming');
+            console.log(`zooming`);
         })
         map.on('zoomend', e => {
+            let currentZoom = map.getZoom();
+            console.log(`zoomend: ${currentZoom}`);
             refresh = setTimeout(() => {
 
-                var bounds = this.map.getBounds();
-                var center = this.map.getCenter();
-                var lat, lng, xmin, ymin, xmax, ymax, srid;
-                lat = center.lat;
-                lng = center.lng;
-                xmin = bounds._southWest.lng;
-                ymin = bounds._southWest.lat;
-                xmax = bounds._northEast.lng;
-                ymax = bounds._northEast.lat;
-                srid = 4326;
-
-                element.dataset.columns = this.dataset.columns;
-                element.dataset.order_by = this.dataset.order_by;
-                element.dataset.where = this.dataset.where;
-                element.dataset.columns = element.dataset.columns.replace(":lat", lat).replace(":lng", lng);
-                element.dataset.order_by = element.dataset.order_by.replace(":lat", lat).replace(":lng", lng);
-                element.dataset.where = element.dataset.where.replace(":xmin", xmin).replace(":xmax", xmax).replace(":ymin", ymin).replace(":ymax", ymax);
-
-                // TODO: get ajax request for each layer which is true and add to array
-                Object.keys(overlayMaps).forEach(function (value) {
-                    if (map.hasLayer(overlayMaps[value]["markers"])) {
-                        let sql = {
-                            "query": {
-                                "url": element.dataset.url,
-                                "db": element.dataset.db,
-                                "select": {
-                                    "columns": {
-                                        0: element.dataset.columns
-                                    }
-                                },
-                                "from": {
-                                    "table": element.dataset.table
-                                },
-                                "inner_join": element.dataset.inner_join,
-                                "where": element.dataset.where,
-                                "order_by": element.dataset.order_by,
-                                "direction": element.dataset.direction,
-                                "limit": element.dataset.limit,
-                                "offset": element.dataset.offset
-                            }
-                        };
-                        ajax(sql, "GET", self.layerUpdate.bind(self));
+                Object.keys(overlayMaps).forEach(function (key) {
+                    if (map.hasLayer(overlayMaps[key])) {
+                        // TODO: ReAdd if back within zoomlevels!
+                        // if((currentZoom >= self._overlayMaps[key]?.layerParams?.minZoom) && (currentZoom <= self._overlayMaps[key]?.layerParams?.maxZoom)) {
+                        //     console.log("SHOW ON MAP")
+                        // } else {
+                        //     map.removeLayer(overlayMaps[key]);
+                        // }
+                        self.layerUpdate(key);
                     }
                 })
+
+                // var bounds = this.map.getBounds();
+                // var center = this.map.getCenter();
+                // var lat, lng, xmin, ymin, xmax, ymax, srid;
+                // lat = center.lat;
+                // lng = center.lng;
+                // xmin = bounds._southWest.lng;
+                // ymin = bounds._southWest.lat;
+                // xmax = bounds._northEast.lng;
+                // ymax = bounds._northEast.lat;
+                // srid = 4326;
 
                 // document.getElementById("mapinfo_bounds_ne").innerHTML = xmax + ", " + ymax;
                 // document.getElementById("mapinfo_bounds_sw").innerHTML = xmin + ", " + ymin;
 
-                var projCoordNE = proj4(fromProjection, toProjection).forward([xmax, ymax]);
-                var projCoordSW = proj4(fromProjection, toProjection).forward([xmin, ymin]);
+                // var projCoordNE = proj4(fromProjection, toProjection).forward([xmax, ymax]);
+                // var projCoordSW = proj4(fromProjection, toProjection).forward([xmin, ymin]);
 
-                document.getElementById("mapinfo_bounds_ne").innerHTML = parseFloat(projCoordNE[0].toFixed(0)) + ", " + parseFloat(projCoordNE[1].toFixed(0));
-                document.getElementById("mapinfo_bounds_sw").innerHTML = parseFloat(projCoordSW[0].toFixed(0)) + ", " + parseFloat(projCoordSW[1].toFixed(0));
+                // document.getElementById("mapinfo_bounds_ne").innerHTML = parseFloat(projCoordNE[0].toFixed(0)) + ", " + parseFloat(projCoordNE[1].toFixed(0));
+                // document.getElementById("mapinfo_bounds_sw").innerHTML = parseFloat(projCoordSW[0].toFixed(0)) + ", " + parseFloat(projCoordSW[1].toFixed(0));
 
-            }, 200);
+            }, 1000);
         })
         map.on('mousemove', e => {
             var projCoord = proj4(fromProjection, toProjection).forward([e.latlng.lng, e.latlng.lat]);
 
             //document.getElementById("mapinfocoordinates").innerHTML = e.latlng;
-            document.getElementById("mapinfocoordinates").innerHTML = "XY(" + parseFloat(projCoord[0].toFixed(0)) + ", " + parseFloat(projCoord[1].toFixed(0)) + ")";
+            if (document.querySelector("mapinfocoordinates")) {
+                document.getElementById("mapinfocoordinates").innerHTML = "XY(" + parseFloat(projCoord[0].toFixed(0)) + ", " + parseFloat(projCoord[1].toFixed(0)) + ")";
+            }
+            //console.log("(" + parseFloat(projCoord[0].toFixed(0)) + ", " + parseFloat(projCoord[1].toFixed(0)) + ")");
 
         })
-
         // Object started
         map.on(L.Draw.Event.DRAWSTART, function (event) {
 
-            Object.values(markers).forEach(function (marker) {
+            Object.values(selectedMarkers).forEach(function (marker) {
                 if (selectedMarkers[marker.properties.id]) {
-                    marker.setIcon(icon);
+                    marker.setIcon(marker.properties.icon);
                     delete selectedMarkers[marker.properties.id];
                 }
             })
@@ -686,7 +814,6 @@ class ajaxMap {
             })
 
         })
-
         // Object created - bind popup to layer, add to feature group
         map.on(L.Draw.Event.CREATED, function (event) {
             var layer = event.layer;
@@ -697,17 +824,17 @@ class ajaxMap {
             drawnItems.addLayer(layer);
 
             Object.keys(overlayMaps).forEach(function (key) {
-                if (map.hasLayer(overlayMaps[key]["markers"])) {
-                    overlayMaps[key]["markers"].eachLayer(function (marker) {
+                if (map.hasLayer(self._overlayGroups[key]?.markerLayer)) {
+                    self._overlayGroups[key].markerLayer.eachLayer(function (marker) {
                         if (layer.contains(marker.getLatLng())) {
-                            markers[marker.properties.id].setIcon(selectedIcon);
+                            //markers[marker.properties.id].setIcon(selectedIcon);
+                            marker.setIcon(marker.properties.selectedIcon);
                             selectedMarkers[marker.properties.id] = marker;
                         }
                     })
                 }
             })
         })
-
         // Object(s) edited - update popups
         map.on(L.Draw.Event.EDITED, function (event) {
             var layers = event.layers,
@@ -719,13 +846,15 @@ class ajaxMap {
                 }
 
                 Object.keys(overlayMaps).forEach(function (key) {
-                    if (map.hasLayer(overlayMaps[key]["markers"])) {
-                        overlayMaps[key]["markers"].eachLayer(function (marker) {
+                    if (map.hasLayer(self._overlayGroups[key]?.markerLayer)) {
+                        self._overlayGroups[key].markerLayer.eachLayer(function (marker) {
                             if (layer.contains(marker.getLatLng())) {
-                                markers[marker.properties.id].setIcon(selectedIcon);
+                                //markers[marker.properties.id].setIcon(selectedIcon);
+                                marker.setIcon(marker.properties.selectedIcon);
                                 selectedMarkers[marker.properties.id] = marker;
                             } else if (selectedMarkers[marker.properties.id]) {
-                                markers[marker.properties.id].setIcon(icon);
+                                //markers[marker.properties.id].setIcon(icon);
+                                marker.setIcon(marker.properties.icon);
                                 delete selectedMarkers[marker.properties.id];
                             }
                         })
@@ -734,11 +863,10 @@ class ajaxMap {
 
             });
         })
-
         // Object(s) deleted - saved
         map.on(L.Draw.Event.DELETED, function (event) {
             Object.values(selectedMarkers).forEach(function (marker) {
-                markers[marker.properties.id].setIcon(icon);
+                selectedMarkers[marker.properties.id].setIcon(marker.properties.icon);
                 delete selectedMarkers[marker.properties.id];
             });
         })
@@ -754,44 +882,51 @@ class ajaxMap {
     }
 
     get Data() {
-        return JSON.parse(this.data);
+        return JSON.parse(this._overlayMaps[layer].dataset);
+    }
+
+    returnDataset(layer) {
+        return JSON.stringify(this._overlayMaps[layer].dataset);
     }
 
     eventReceiver(e, i) {
-        console.log("eventReceiver");
+        console.info(`%c${this.element.id} eventReceiver`, "color: #28a745");
+        console.log(e);
 
         let self = this;
 
-        var marker = this.markers[i];
+        var layer = document.querySelector(`[id='${e.origin}']`).dataset.layer;
+        var marker = self._overlayGroups[layer].markers[i];
+        console.log(marker);
+        /*
+        var marker = self.markers[i];
+        */
+
         if (this.selectedMarkers[i]) {
             this.eventTransmitter(e, i);
             return;
         }
 
         const mouseover = () => {
-            marker.setIcon(this.highlightIcon);
+            marker.setIcon(marker.properties.highlightIcon);
         }
-
         const mouseout = () => {
-            marker.setIcon(this.icon);
+            marker.setIcon(marker.properties.icon);
         }
-
         const mousedown = () => {
             //marker.setIcon(this.selectedIcon);
         }
-
         const mouseup = () => {
             //marker.setIcon(this.selectedIcon);
         }
-
         const click = () => {
             if (Object.keys(self.selectedMarkers).length > 0) {
                 Object.keys(self.selectedMarkers).forEach(function (key) {
-                    self.markers[key].setIcon(self.icon);
+                    self.selectedMarkers[key].setIcon(self.selectedMarkers[key].properties.icon);
                     delete self.selectedMarkers[key];
                 })
             }
-            marker.setIcon(this.selectedIcon);
+            marker.setIcon(marker.properties.selectedIcon);
             this.selectedMarkers[i] = marker;
             this.eventTransmitter(e, i);
         }
@@ -815,204 +950,468 @@ class ajaxMap {
             default:
                 break;
         }
+
     }
 
     eventTransmitter(e, i) {
-        console.log("eventTransmitter");
+        console.info(`%c${this.element.id} eventTransmitter`, "color: #28a745");
+        // TODO: Get layer in which event is transmitted from!
+        // TODO: We need the target layer, even if it comes from child..
+        //if (!e.target.properties.layer) { return; }
+        if (!e.origin) { e.origin = this.element.id }
+        console.log(e);
 
-        let slaveTemplates = document.querySelectorAll('[data-ajax="template"][data-master="' + this.element.id + '"]');
+        // let slaveTemplates = document.querySelectorAll('[data-ajax="template"][data-master="' + this.element.id + '"]');
+        let slaveTemplates = document.querySelectorAll(`[data-ajax='template'][data-master='${this.element.id}']`);
         slaveTemplates.forEach((template) => {
-            Templates[template.dataset.key].eventReceiver(e, i);
+            if (template.id === e.origin) { return; }
+            window["ajaxTemplates"][template.dataset.key].eventReceiver(e, i);
         });
 
-        let slaveTables = document.querySelectorAll('[data-ajax="table"][data-master="' + this.element.id + '"]');
+        // let slaveTables = document.querySelectorAll('[data-ajax="table"][data-master="' + this.element.id + '"]');
+        let slaveTables = document.querySelectorAll(`[data-ajax='table'][data-master='${this.element.id}']`);
         slaveTables.forEach((table) => {
-            Tables[table.dataset.index].eventReceiver(e, i);
+            if (table.id === e.origin) { return; }
+            window["ajaxTables"][parseInt(table.dataset.index, 10)].eventReceiver(e, i);
         });
 
+    }
+
+    mapCreate(element, index) {
     }
 
     mapCallback(element) {
         console.log("mapCallback");
 
-        document.getElementById("totalrecords").innerHTML = "# Features in map view: <b>" + this.Data.totalrecords + "</b>";
+        document.getElementById("totalrecords").innerHTML = `# Features in map view: <b>${this.Data.totalrecords}</b>`;
 
-        let slaveTables = document.querySelectorAll('[data-ajax="table"][data-master="' + this.element.id + '"]');
-        slaveTables.forEach((table) => {
-            if (this.map.getZoom() >= parseInt(this.element.dataset.zoomlevel, 10) /*|| self.getData().totalrecords <= self.getDataset().limit */) {
-                table.previousElementSibling.style.display = "none";
-                table.style.display = "table";
-                Tables[table.dataset.index].tableTabulate(this.data);
-            } else {
-                table.previousElementSibling.style.display = "block";
-                table.style.display = "none";
+        // let slaveTables = document.querySelectorAll(`[data-ajax='table'][data-master='${this.element.id}'][data-layer='${layer}']`);
+        // slaveTables.forEach((table) => {
+        //     if (this.map.getZoom() >= parseInt(this.element.dataset.zoomlevel, 10) /*|| self.getData().totalrecords <= self.getDataset().limit */) {
+        //         table.previousElementSibling.style.display = "none";
+        //         table.style.display = "table";
+        //         window["ajaxTables"][parseInt(table.dataset.index, 10)].tableTabulate(this.data);
+        //     } else {
+        //         table.previousElementSibling.style.display = "block";
+        //         table.style.display = "none";
 
-            }
-        });
+        //     }
+        // });
 
-        if(this._mapCallback.functions) {
-			let callbacks = this._mapCallback.functions;
-			Object.keys(callbacks).forEach(function (value) {
-				callbacks[value](element);
-			})
-		}
+        if (this._mapCallback.functions) {
+            let callbacks = this._mapCallback.functions;
+            Object.keys(callbacks).forEach(function (value) {
+                callbacks[value](element);
+            })
+        }
     }
 
-    layerUpdate(response) {
-        if(response.type !== "success") return response;
-
-        console.log("layerUpdate");
-        console.log(response);
+    layerUpdate(layer, callback) {
+        console.info("%clayerUpdate", "color: #28a745");
+        if (storageHandler.storage.session.get(layer)) {
+            return;
+        }
 
         let self = this;
-        let map = this.element;
 
-        window.history.pushState({page: this.element.dataset.offset + 1}, "", "?page="+(parseInt(this.element.dataset.offset, 10) + 1));
+        function layerTabulate(response) {
+            console.log('layerTabulate');
+            if (response.type !== "success") return response;
 
-        const data = response.data;
-        const obj = response.data.dataset;
-        const records = data["records"];
-        const totalrecords = data["totalrecords"];
-        delete data.records;
-        delete data.totalrecords;
+            var startTime = performance.now()
+            const obj = self._overlayMaps[layer].parseResponse(response);
+            var endTime = performance.now()
+            console.log(`Call to parseResponse took ${endTime - startTime} milliseconds`)
 
-        Object.keys(obj).forEach(function (value) {
-            var i = Object.entries(obj[value])[0][1];
+            var icon = self._overlayGroups[layer].icons.icon;
+            var highlightIcon = self._overlayGroups[layer].icons.highlightIcon;
+            var selectedIcon = self._overlayGroups[layer].icons.selectedIcon;
+            var layerId = self.overlayMaps[layer]._leaflet_id;
 
-            if (!self.overlayMaps[Object.keys(self.overlayMaps)[0]]["markers"].hasLayer(self.markers[i])) {
-                // console.log("Marker is in view and wasn't added already...");
-                // Retrieve the coordinates from the data obj...
-                var marker = L.marker([obj[value].latitude, obj[value].longitude], { icon: self.icon });
-                marker.properties = {};
-                marker.properties.id = i;
+            /*
+            var startTime = performance.now()
+            self._overlayGroups[layer]["markerLayer"].clearLayers();    // Takes too long!
+            var endTime = performance.now()
+            console.log(`Call to clearLayers took ${endTime - startTime} milliseconds`)
+            */
 
-                marker.addEventListener('mouseover', (e) => {
-                    if (Object.keys(self.selectedMarkers).length > 0) {
-                        if (!self.selectedMarkers[i]) {
-                            marker.setIcon(self.highlightIcon);
+            var startTime = performance.now()
+            Object.values(obj).forEach(function (value) {
+                var i = self._overlayMaps[layer].getUID(value);
+
+                if (!self._overlayGroups[layer]["markerLayer"].hasLayer(self._overlayGroups[layer].markers[i])) { // Every time?
+                    //console.info(`%cMarker ${i} is in view but wasn't added already...`, "color: #ffc107");
+                    var coords = self._overlayMaps[layer].getLatLng(value);
+                    var marker = L.marker([coords.lat, coords.lng], { icon: icon });
+                    marker.properties = {};
+                    marker.properties.id = i;
+                    marker.properties.layer = layer;
+                    marker.properties.layerId = layerId;
+                    marker.properties.icon = icon;
+                    marker.properties.highlightIcon = highlightIcon
+                    marker.properties.selectedIcon = selectedIcon;
+
+                    marker.addEventListener('mouseover', (e) => {
+                        if (Object.keys(self.selectedMarkers).length > 0) {
+                            if (!self.selectedMarkers[i]) {
+                                marker.setIcon(marker.properties.highlightIcon);
+                            }
+                        } else {
+                            marker.setIcon(marker.properties.highlightIcon);
+                        }
+                        self.eventTransmitter(e, i);
+                    });
+                    marker.addEventListener('mouseout', (e) => {
+                        if (Object.keys(self.selectedMarkers).length > 0) {
+                            if (!self.selectedMarkers[i]) {
+                                marker.setIcon(marker.properties.icon);
+                            }
+                        } else {
+                            marker.setIcon(marker.properties.icon);
+                        }
+                        self.eventTransmitter(e, i);
+                    });
+                    marker.addEventListener('mousedown', (e) => {
+                        if (Object.keys(self.selectedMarkers).length > 0) {
+                            if (!self.selectedMarkers[i]) {
+                                Object.values(self.selectedMarkers).forEach(function (marker) {
+                                    marker.setIcon(marker.properties.icon);
+                                })
+                                marker.setIcon(marker.properties.selectedIcon);
+                            }
+                        } else {
+                            marker.setIcon(marker.properties.selectedIcon);
+                        }
+                        self.eventTransmitter(e, i);
+                    });
+                    marker.addEventListener('mouseup', (e) => {
+                        if (Object.keys(self.selectedMarkers).length > 0) {
+                            if (!self.selectedMarkers[i]) {
+                                Object.values(self.selectedMarkers).forEach(function (marker) {
+                                    marker.setIcon(marker.properties.icon);
+                                })
+                                marker.setIcon(marker.properties.selectedIcon);
+                            }
+                        } else {
+                            marker.setIcon(marker.properties.selectedIcon);
+                        }
+                        self.eventTransmitter(e, i);
+                    });
+                    marker.addEventListener('click', (e) => {
+                        if (Object.keys(self.selectedMarkers).length > 0) {
+                            if (!self.selectedMarkers[i]) {
+                                Object.values(self.selectedMarkers).forEach(function (marker) {
+                                    marker.setIcon(marker.properties.icon);
+                                    delete self.selectedMarkers[marker.properties.id];
+                                });
+                                marker.setIcon(marker.properties.selectedIcon);
+                            }
+                        } else {
+                            marker.setIcon(marker.properties.selectedIcon);
+                        }
+                        self.selectedMarkers[i] = marker;
+                        self.eventTransmitter(e, i);
+                    });
+
+                    self._overlayGroups[layer].markers[i] = marker;
+
+                    if (bounds.contains(marker.getLatLng())) {
+                        self._overlayGroups[layer]["markerLayer"].addLayer(marker);
+                        if (self.selectedMarkers[i]) {
+                            marker.setIcon(marker.properties.selectedIcon);
                         }
                     } else {
-                        marker.setIcon(self.highlightIcon);
+                        self._overlayGroups[layer]["markerLayer"].removeLayer(marker);
                     }
-                    self.eventTransmitter(e, i);
-                });
-                marker.addEventListener('mouseout', (e) => {
-                    if (Object.keys(self.selectedMarkers).length > 0) {
-                        if (!self.selectedMarkers[i]) {
-                            marker.setIcon(self.icon);
-                        }
-                    } else {
-                        marker.setIcon(self.icon);
-                    }
-                    self.eventTransmitter(e, i);
-                });
-                marker.addEventListener('mousedown', (e) => {
-                    if (Object.keys(self.selectedMarkers).length > 0) {
-                        if (!self.selectedMarkers[i]) {
-                            Object.values(self.selectedMarkers).forEach(function (marker) {
-                                marker.setIcon(self.icon);
-                            })
-                            marker.setIcon(self.selectedIcon);
-                        }
-                    } else {
-                        marker.setIcon(self.selectedIcon);
-                    }
-                    self.eventTransmitter(e, i);
-                });
-                marker.addEventListener('mouseup', (e) => {
-                    if (Object.keys(self.selectedMarkers).length > 0) {
-                        if (!self.selectedMarkers[i]) {
-                            Object.values(self.selectedMarkers).forEach(function (marker) {
-                                marker.setIcon(self.icon);
-                            })
-                            marker.setIcon(self.selectedIcon);
-                        }
-                    } else {
-                        marker.setIcon(self.selectedIcon);
-                    }
-                    self.eventTransmitter(e, i);
-                });
-                marker.addEventListener('click', (e) => {
-                    if (Object.keys(self.selectedMarkers).length > 0) {
-                        if (!self.selectedMarkers[i]) {
-                            Object.keys(self.selectedMarkers).forEach(function (marker) {
-                                self.selectedMarkers[marker].setIcon(self.icon);
-                                delete self.selectedMarkers[marker];
-                            });
-                            marker.setIcon(self.selectedIcon);
-                        }
-                    } else {
-                        marker.setIcon(self.selectedIcon);
-                    }
-                    self.selectedMarkers[i] = marker;
-                    self.eventTransmitter(e, i);
-                });
 
-                self.markers[i] = marker;
+                } // else {
+                //     console.info(`%cMarker ${i} is in view and was added already...`, "color: #28a745");
+                // }
+            })
+            var endTime = performance.now()
+            console.log(`Call to iterate Object took ${endTime - startTime} milliseconds`)
 
+            // var startTime = performance.now()
+            // for (let [key, marker] of Object.entries(self._overlayGroups[layer].markers)) {
+            //     // self._overlayGroups[layer]["markerLayer"].addLayer(marker);
+            //     // if (self.selectedMarkers[key]) {
+            //     //     marker.setIcon(marker.properties.selectedIcon);
+            //     // }
+            //     // TODO: Taking too long for each marker...
+            //     // Maybe remove ALL markers and add marker within bounds..
+            //     // if (bounds.contains(marker.getLatLng())) {
+            //     //     self._overlayGroups[layer]["markerLayer"].addLayer(marker);
+            //     //     if (self.selectedMarkers[key]) {
+            //     //         marker.setIcon(marker.properties.selectedIcon);
+            //     //     }
+            //     // } else {
+            //     //     self._overlayGroups[layer]["markerLayer"].removeLayer(marker);
+            //     // }
+            // }
+            // var endTime = performance.now()
+            // console.log(`Call to doSomething took ${endTime - startTime} milliseconds`)
+
+            if (self._overlayMaps[layer]?.layerParams.cacheReturn == true) {
+                storageHandler.storage.session.set(layer, 'cached');
             }
-        })
 
-        if ((self.map.getZoom() >= parseInt(map.dataset.zoomlevel, 10) + 1)) {
-            if (self.map.hasLayer(self.overlayMaps[Object.keys(self.overlayMaps)[0]]["heat"])) {
-                self.map.removeLayer(self.overlayMaps[Object.keys(self.overlayMaps)[0]]["heat"]);
-            }
-        } else {
-            if (!self.map.hasLayer(self.overlayMaps[Object.keys(self.overlayMaps)[0]]["heat"])) {
-                self.map.addLayer(self.overlayMaps[Object.keys(self.overlayMaps)[0]]["heat"]);
-            }
+            if(document.querySelector(`[data-ajax='table'][data-master='${self.element.id}'][data-layer='${layer}']`)){
+                let table = document.querySelector(`[data-ajax='table'][data-master='${self.element.id}'][data-layer='${layer}']`);
+                window["ajaxTables"][parseInt(table.dataset.index, 10)].tableTabulate(response);
+            }           
 
-            var heat = [];
-            for (let [key, marker] of Object.entries(self.markers)) {
-                if (self.map.getBounds().contains(marker.getLatLng())) {
-                    var arr = [marker.getLatLng().lat, marker.getLatLng().lng, 0.4];
-                    heat.push(arr);
-                }
-            }
-            self.overlayMaps[Object.keys(self.overlayMaps)[0]]["heat"].setLatLngs(heat);
+            self._overlayMaps[layer].dataset = obj;
+
         }
 
-        // TODO: Remove ALL markers before adding back the returned ones...?
-        // Otherwise, some markers are placed on map from memory, but are outside the 1000 returned limit and don't show up in the slavetable
-        for (let [key, marker] of Object.entries(self.markers)) {
-            if (self.map.getBounds().contains(marker.getLatLng())) {
-                self.overlayMaps[Object.keys(self.overlayMaps)[0]]["markers"].addLayer(marker);
-                if (self.selectedMarkers[key]) {
-                    marker.setIcon(self.selectedIcon);
-                }
-            } else {
-                self.overlayMaps[Object.keys(self.overlayMaps)[0]]["markers"].removeLayer(marker);
+        if (this._overlayMaps[layer]?.layerType !== "tileLayer"
+            && this._overlayMaps[layer]?.layerType !== "tileLayer.WMS") {
+            console.info(`%cUpdating layer: ${layer}`, "color: #28a745");
+
+            var bounds = this.map.getBounds();
+            var center = this.map.getCenter();
+            var lat, lng, xmin, ymin, xmax, ymax, srid;
+            lat = center.lat;
+            lng = center.lng;
+            xmin = bounds._southWest.lng;
+            ymin = bounds._southWest.lat;
+            xmax = bounds._northEast.lng;
+            ymax = bounds._northEast.lat;
+            srid = 4326;
+
+            let method = "GET";
+            let sql = {
+                "url": self._overlayMaps[layer]?.layerParams.url || null,
+                "db": self._overlayMaps[layer]?.layerParams.db || null,
+                //"query": self._overlayMaps[value]?.layerParams.query
+                "query": jsonSQL.query.replace(self._overlayMaps[layer]?.layerParams.query, [":xmin", ":xmax", ":ymin", ":ymax", ":lat", ":lng"], [xmin, xmax, ymin, ymax, lat, lng])
             }
+            ajax(method, sql, layerTabulate);
         }
 
-        /*
-        // TODO: Fix selectedMarkers as Object
-        Object.values(self.markers).forEach(function (marker) {
-            console.log(marker._leaflet_id);
-            // TODO: Add maximum layers...
-            // Remove ALL markers and re-add to maximum of limit...
-            if (self.map.getBounds().contains(marker.getLatLng())) {
-                self.overlayMaps[Object.keys(self.overlayMaps)[0]].addLayer(marker);
-                if ((Object.keys(self.selectedMarkers).length > 0) && (self.selectedMarkers[marker._leaflet_id].getLatLng().lat == marker.getLatLng().lat && self.selectedMarkers[marker._leaflet_id].getLatLng().lng == marker.getLatLng().lng)) {
-                    marker.setIcon(self.selectedIcon);
-                    self.selectedMarkers[marker._leaflet_id] = marker;
-                }
-            } else {
-                self.overlayMaps[Object.keys(self.overlayMaps)[0]].removeLayer(marker);
-                //if ((Object.keys(self.selectedMarkers).length > 0) || (self.selectedMarkers.getLatLng().lat !== self.markers[value].getLatLng().lat || self.selectedMarkers.getLatLng().lng !== self.markers[value].getLatLng().lng)) {
-                //delete self.markers.marker; // Can't delete the marker which is selected from array, in case we pan back into view...
-                //}
-
-            }
-        })
-        */
-
-        this.data = data;
-        this.mapCallback(map);
-
+        if (callback) {
+            callback(layer);
+        }
     }
 
-    mapCreate(element, index) {
+    tableCreate(layer) {
+
+        let self = this;
+
+        var container = document.getElementById(self.element.id).parentElement;
+
+        if (window.getComputedStyle(document.querySelector('.d-none.d-md-block')).display == 'none') {
+            // Mobile screen size
+            if (!container.querySelector('#template-container')) {
+                var div = document.createElement('div');
+                div.classList.add('container-fluid');
+                div.id = "template-container";
+                div.style.position = 'absolute';
+                div.style.top = '100%';
+                div.style.left = '0';
+                div.style.height = '100%';
+                div.style.backgroundColor = 'inherit';
+                container.appendChild(div);
+                var button = document.createElement('button');
+                button.type = 'button';
+                button.classList.add('btn-close', 'mt-3', 'pull-left');
+                button.setAttribute('aria-label', 'Close');
+                button.addEventListener("click", function () {
+                    window.scrollTo({
+                        top: '56px',
+                        behavior: 'smooth'
+                    });
+                })
+                div.appendChild(button);
+                //div.scrollIntoView();
+                //document.querySelector('#template-container').scrollTop;
+            } else {
+                //document.querySelector('#template-container').scrollIntoView();
+            }
+
+        } else {
+            document.getElementById(self.element.id).style.height = "calc(60vh - 56px)";
+            document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = "56px";
+
+            if (!container.querySelector('nav')) {
+                var nav = document.createElement('nav');
+                nav.style.position = 'absolute';
+                nav.style.top = 'auto';
+                nav.style.right = 'auto';
+                nav.style.bottom = '40vh';
+                nav.style.left = 'auto';
+                nav.style.zIndex = '999';
+                var ul = document.createElement('ul');
+                ul.classList.add('nav', 'nav-tabs');
+                ul.id = "nav-tab";
+                ul.setAttribute('role', 'tablist');
+                nav.appendChild(ul);
+                container.appendChild(nav);
+            }
+
+            if (!container.querySelector('div.tab-content')) {
+                var div = document.createElement('div');
+                div.classList.add('tab-content', 'bg-white');
+                div.id = "nav-tabContent";
+                div.style.position = 'absolute';
+                div.style.top = '60vh';
+                div.style.right = '0';
+                div.style.bottom = '0';
+                div.style.left = '0';
+                div.style.height = '40vh';
+                div.style.flexGrow = '1';
+                div.style.zIndex = '999';
+                container.appendChild(div);
+            }
+
+            // Create new tab element
+            var li = document.createElement('li');
+            li.classList.add('nav-item');
+            li.setAttribute('role', 'presentation');
+            var button = document.createElement('button');
+            button.classList.add('nav-link', 'link-dark', 'bg-light', 'pull-left', 'active');
+            button.id = `nav-${self.overlayMaps[layer]._leaflet_id}-tab`;
+            button.dataset.bsToggle = "tab";
+            button.dataset.bsTarget = `#nav-${self.overlayMaps[layer]._leaflet_id}`;
+            button.type = "button";
+            button.setAttribute('role', 'tab');
+            button.setAttribute('aria-controls', `nav-${self.overlayMaps[layer]._leaflet_id}`);
+            button.setAttribute('aria-selected', 'true');
+            button.style.marginTop = '0.3em';
+            button.style.marginRight = '-0.9em';
+            button.innerText = layer;
+            var close = document.createElement('button');
+            close.classList.add('btn-close', 'btn-xxs');
+            close.setAttribute('aria-label', 'Close');
+            close.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log()
+                var tableTabs = document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.children;
+                var tablePanes = document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').children;
+                for (var i = 0; i < tableTabs.length; i++) {
+                    if (tableTabs[i].firstElementChild.innerText == e.target.parentElement.firstElementChild.innerText) {   // We keep the layer obviously..
+                        var tableTab = tableTabs[i];
+                        var tablePane = tablePanes[i];
+                        // Check if current tab was the active tab..
+                        if (tableTab.classList.contains('active')) {
+                            tableTabs[0].firstElementChild.classList.add('active');
+                        }
+                        if (tablePane.classList.contains('show', 'active')) {
+                            tablePanes[0].classList.add('show', 'active');
+                        }
+                        // Order isn't always correct.., 
+                        // we do not update the element.dataset.index for each table if we remove from ajaxTables..
+                        console.log(tablePanes[i].querySelector('table').dataset.index);
+                        console.log(window["ajaxTables"]);
+                        window["ajaxTables"].splice(tablePanes[i].querySelector('table').dataset.index, 1); 
+                        console.log(window["ajaxTables"]);
+                        // let value = parseInt(tablePanes[i].querySelector('table').dataset.index, 10);
+                        // window["ajaxTables"] = window["ajaxTables"].filter(item => item !== value);
+                        document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.removeChild(tableTab);
+                        document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').removeChild(tablePane);
+                    }
+                }
+                var x = tableTabs.length;
+                if (x == 0) {
+                    var nav = document.getElementById(self.element.id).parentElement.querySelector('nav');
+                    var div = document.getElementById(self.element.id).parentElement.querySelector('div.tab-content');
+                    document.getElementById(self.element.id).style.height = "100%";
+                    document.getElementById(self.element.id).parentElement.removeChild(nav);
+                    document.getElementById(self.element.id).parentElement.removeChild(div);
+                }
+            })
+            li.append(button, close);
+
+            var tabs = container.querySelector('nav').firstElementChild.childNodes;
+            tabs.forEach(tab => {
+                tab.firstElementChild.classList.remove('active');
+            })
+            container.querySelector('nav').firstElementChild.appendChild(li);
+
+            // Create new tab-pane element
+            var div = document.createElement('div');
+            div.classList.add('tab-pane', 'fade', 'show', 'active');
+            div.id = `nav-${self.overlayMaps[layer]._leaflet_id}`;
+            div.setAttribute('role', 'tabpanel');
+            div.setAttribute('aria-labelledby', `nav-${self.overlayMaps[layer]._leaflet_id}-tab`);
+            div.style.height = "inherit";
+            var tableContainer = document.createElement('div');
+            tableContainer.classList.add('table-scrollable');
+            tableContainer.style.margin = "0";
+            tableContainer.style.height = "100%";
+            tableContainer.style.overflowY = "scroll";
+            div.appendChild(tableContainer);
+
+            var tabpanes = container.querySelector('div.tab-content').childNodes;
+            tabpanes.forEach(tabpane => {
+                tabpane.classList.remove('show', 'active');
+            })
+            container.querySelector('#nav-tabContent').appendChild(div);
+
+            // Create new table
+            var table = document.createElement('table');
+            var caption = document.createElement('caption');
+            caption.innerText = layer;
+            caption.style.marginTop = "0";
+            caption.style.marginRight = "0";
+            caption.style.marginBottom = "0";
+            caption.style.marginLeft = "0";
+            caption.style.fontSize = "2em";
+            caption.style.color = "black";
+            caption.style.backgroundColor = "transparent";
+            //table.appendChild(caption);
+            table.classList.add('ajaxTable', 'table-hover');
+            table.dataset.ajax = "table";
+            table.dataset.master = self.element.id;
+            table.dataset.layer = layer;
+            table.dataset.layerId = self.overlayMaps[layer]._leaflet_id;
+            table.dataset.query = JSON.stringify(self._overlayMaps[layer].layerParams.query);
+            table.dataset.columns = self._overlayMaps[layer].layerParams.columns;
+            table.dataset.columnnames = self._overlayMaps[layer].layerParams.columns;
+            table.dataset.events = "mouseover,mouseout,mousedown,mouseup,click";
+            // table.dataset.columns = "labidnr,longitude,latitude,xy,geom,xco,yco";
+            // table.dataset.columnnames = "labidnr,longitude,latitude,xy,geom,xco,yco";
+            container.querySelector(`#nav-${self.overlayMaps[layer]._leaflet_id}`).firstElementChild.appendChild(table);
+
+            // TODO: parseResponse depends per layer
+            var tableOptions = {
+                parseResponse: function (response) {
+                    const obj = response.data.dataset;
+                    return obj;
+                },
+                _tableCallback: {
+                    functions: {}
+                }
+            }
+            let key = window["ajaxTables"].length;
+            let element = container.querySelector(`#nav-${self.overlayMaps[layer]._leaflet_id}`).lastElementChild.lastElementChild;
+            window["ajaxTables"][key] = new ajaxTable(element, key, tableOptions);
+
+            // TODO
+            if (!container.querySelector('#template-container')) {
+                var div = document.createElement('div');
+                div.classList.add('container-fluid');
+                div.id = "template-container";
+                div.style.position = 'absolute';
+                div.style.top = '0';
+                div.style.left = '100%';
+                div.style.height = '100%';
+                div.style.backgroundColor = 'inherit';
+                container.appendChild(div);
+                var button = document.createElement('button');
+                button.type = 'button';
+                button.classList.add('btn-close', 'mt-3', 'pull-left');
+                button.setAttribute('aria-label', 'Close');
+                button.addEventListener("click", function () {
+                    document.querySelector(`[id='${self.element.id}']`).scrollIntoView();
+                })
+                div.appendChild(button);
+                //div.scrollIntoView();
+            } else {
+                //document.querySelector('#template-container').scrollIntoView();
+            }
+        }
     }
 
     exportData() {
@@ -1028,10 +1427,12 @@ class ajaxMap {
             Object.values(self.drawnItems._layers).forEach(function (layer) {
                 Object.values(self.markers).forEach(function (marker) {
                     if (layer.contains(marker.getLatLng())) {
-                        self.markers[marker.properties.id].setIcon(self.selectedIcon);
+                        //self.markers[marker.properties.id].setIcon(self.selectedIcon);
+                        marker.setIcon(marker.properties.selectedIcon);
                         self.selectedMarkers[marker.properties.id] = marker;
                     } else if (self.selectedMarkers[marker.properties.id]) {
-                        self.markers[marker.properties.id].setIcon(self.icon);
+                        // self.markers[marker.properties.id].setIcon(self.icon);
+                        marker.setIcon(marker.properties.icon);
                         delete self.selectedMarkers[marker.properties.id];
                     }
                 })
@@ -1094,433 +1495,18 @@ class ajaxMap {
             text += "Filename: " + "LLGData-" + document.getElementById("mapinfo_bounds_ne").innerHTML.replace(", ", "_") + "-" + document.getElementById("mapinfo_bounds_sw").innerHTML.replace(", ", "_") + ".xml";
             var bool = confirm(text);
             if (bool == true) {
+                let method = "GET";
                 let sql = {
-                    "query": {
-                        "url": element.dataset.url,
-                        "db": element.dataset.db,
-                        "select": {
-                            "columns": {
-                                0: element.dataset.columns
-                            }
-                        },
-                        "from": {
-                            "table": element.dataset.table
-                        },
-                        "inner_join": element.dataset.inner_join,
-                        "where": element.dataset.where,
-                        "order_by": element.dataset.order_by,
-                        "direction": element.dataset.direction,
-                        "limit": element.dataset.limit,
-                        "offset": element.dataset.offset
-                    }
-                };
-                ajax(sql, "GET", self.exportDataAsXML.bind(self));
+                    "url": map.dataset.url,
+                    "db": map.dataset.db,
+                    "query": JSON.parse(map.dataset.query)
+                }
+                ajax(method, sql, self.exportDataAsXML.bind(self));
             }
         }
-
-    }
-
-    exportDataAsXML(element, data) {
-        console.log("exportDataAsXML");
-
-        let obj = JSON.parse(data);
-        if (obj.totalrecords == 0) { return; }
-        delete obj.totalrecords;
-
-        let dataObj = new Object();
-
-        /*
-        let slaveTables = document.querySelectorAll('[data-ajax="table"][data-master="' + this.element.id + '"]');
-        slaveTables.forEach((table) => {
-            Tables[table.dataset.index].eventReceiver(e, i);
-        });
-        */
-
-        let sql = {
-            "query": {
-                "url": "//wikiwfs.geo.uu.nl/e107_plugins/ajaxDBQuery/ajaxDBQuery.php",
-                "db": "llg",
-                "select": {
-                    "columns": {
-                        0: "startdepth,depth,texture,organicmatter,plantremains,color,oxired,gravelcontent,median,calcium,ferro,groundwater,sample,soillayer,stratigraphy,remarks"
-                    }
-                },
-                "from": {
-                    "table": Tables[1].element.dataset.table
-                },
-                "where": "borehole=':uid'",
-                "order_by": "startdepth",
-                "direction": "ASC",
-                "limit": element.dataset.limit,
-                "offset": element.dataset.offset
-            }
-        };
-
-        // var el = {};
-        // el.dataset = {};
-
-        // el.dataset.url = "//wikiwfs.geo.uu.nl/e107_plugins/ajaxDBQuery/ajaxDBQuery.php";
-        // el.dataset.db = "llg";
-        // el.dataset.table = Tables[1].element.dataset.table; // TODO: This should be a variable..
-        // el.dataset.columns = "startdepth,depth,texture,organicmatter,plantremains,color,oxired,gravelcontent,median,calcium,ferro,groundwater,sample,soillayer,stratigraphy,remarks";
-        // el.dataset.where = "borehole=':uid'";
-        // el.dataset.order_by = "startdepth";
-        // el.dataset.direction = "ASC";
-
-        function asyncAJAX(prop) {
-
-            return new Promise((resolve, reject) => {
-                //let [k, v] = Object.entries(obj)[prop];
-                var k = Object.keys(obj)[prop];
-                var v = obj[Object.keys(obj)[prop]];
-                var index = v[Object.keys(v)[0]];
-
-                //console.log([k,v]);
-                //console.log(k);
-                //console.log(v);
-                //console.log(index);
-
-                dataObj[k] = {};
-                dataObj[k].boreholeheader = {};
-                dataObj[k].boreholedata = {};
-
-                dataObj[k].boreholeheader = v;
-
-                sql.query.where = "borehole='" + index + "'";
-
-                ajax(sql, (element, data) => {
-                    let obj = JSON.parse(data);
-                    if (obj.totalrecords == 0) { reject(); return; }
-                    delete obj.totalrecords;
-                    dataObj[k].boreholedata = obj;
-                    resolve(dataObj[k]);
-                });
-
-            })
-        }
-
-        var createJSON = new Promise((resolve, reject) => {
-
-            const promises = [];
-            for (const prop in obj) {
-                promises.push(asyncAJAX(prop));
-            }
-
-            Promise.all(promises)
-                .then(obj => {
-                    resolve(obj)
-                }, reason => {
-                    console.log(reason)
-                }).catch(e => {
-                    console.log(e)
-                });
-
-        });
-
-        createJSON.then(obj => {
-
-            var XMLSchema = () => {
-                const xhr = new XMLHttpRequest(),
-                    method = "GET",
-                    url = "https://wikiwfs.geo.uu.nl/LLG/XMLSchema/LLG2012DataSet.xsd";
-
-                xhr.open(method, url, true);
-                xhr.setRequestHeader('Content-Type', 'text/xml');
-                xhr.overrideMimeType('application/xml');
-
-                xhr.onreadystatechange = function () {
-                    if (this.readyState === XMLHttpRequest.DONE) {
-                        if (this.status == 200) {
-                            createXML(this.responseXML);
-                        } else {
-                            console.log(this.statusText)
-                        }
-                    }
-                }
-
-                xhr.send(null);
-            }
-
-            var createXML = (schema) => {
-
-                var namespaceURI,
-                    qualifiedNameStr,
-                    documentType;
-                namespaceURI = "";
-                qualifiedNameStr = "";
-                documentType = null;
-
-                var XMLDocument = document.implementation.createDocument(namespaceURI, qualifiedNameStr, documentType);
-                var LLG2012Dataset = XMLDocument.createElement("LLG2012Dataset");
-                LLG2012Dataset.appendChild(XMLDocument.createTextNode("\n"));
-                LLG2012Dataset.setAttribute("xmlns", "http://tempuri.org/LLG2012DataSet.xsd");
-                LLG2012Dataset.appendChild(XMLDocument.importNode(schema.documentElement, true));
-
-                var BoreholeHeader = XMLDocument.createElement("BoreholeHeader");
-                var Borehole = XMLDocument.createElement("Borehole");
-                var Name = XMLDocument.createElement("Name");
-                var DrillDate = XMLDocument.createElement("DrillDate");
-                var Xco = XMLDocument.createElement("Xco");
-                var Yco = XMLDocument.createElement("Yco");
-                var CoordZone = XMLDocument.createElement("CoordZone");
-                var Elevation = XMLDocument.createElement("Elevation");
-                var DrillDepth = XMLDocument.createElement("DrillDepth");
-                var Geom = XMLDocument.createElement("Geom");
-                var Geol = XMLDocument.createElement("Geol");
-                var Soil = XMLDocument.createElement("Soil");
-                var Veget = XMLDocument.createElement("Veget");
-                var GroundWaterStep = XMLDocument.createElement("GroundWaterStep");
-                var ExtraRemarks = XMLDocument.createElement("ExtraRemarks");
-
-                var BoreholeData = XMLDocument.createElement("BoreholeData");
-                var Depth = XMLDocument.createElement("Depth");
-                var StartDepth = XMLDocument.createElement("StartDepth");
-                var Texture = XMLDocument.createElement("Texture");
-                var OrganicMatter = XMLDocument.createElement("OrganicMatter");
-                var PlantRemains = XMLDocument.createElement("PlantRemains");
-                var Color = XMLDocument.createElement("Color");
-                var OxiRed = XMLDocument.createElement("OxiRed");
-                var GravelContent = XMLDocument.createElement("GravelContent");
-                var Median = XMLDocument.createElement("Median");
-                var Calcium = XMLDocument.createElement("Calcium");
-                var Ferro = XMLDocument.createElement("Ferro");
-                var GroundWater = XMLDocument.createElement("GroundWater");
-                var Sample = XMLDocument.createElement("Sample");
-                var SoilLayer = XMLDocument.createElement("SoilLayer");
-                var Stratigraphy = XMLDocument.createElement("Stratigraphy");
-                var Remarks = XMLDocument.createElement("Remarks");
-
-                var GroupIdentity = XMLDocument.createElement("GroupIdentity");
-                var Year = XMLDocument.createElement("Year");
-                var Group = XMLDocument.createElement("Group");
-                var Names = XMLDocument.createElement("Names");
-                var LLGType = XMLDocument.createElement("LLGType");
-
-                Object.keys(obj).forEach(key => {
-                    // console.log(key);
-                    // console.log(obj[key]);  // value
-                    LLG2012Dataset.appendChild(XMLDocument.createTextNode("\n"))
-                    var BoreholeHeader = XMLDocument.createElement("BoreholeHeader")
-                    if (obj[key].boreholeheader.borehole) {
-                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-                        BoreholeHeader.appendChild(Borehole.cloneNode(true))
-                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.borehole))
-                    }
-                    if (obj[key].boreholeheader.name) {
-                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-                        BoreholeHeader.appendChild(Name.cloneNode(true))
-                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.name.substring(0, 20)))
-                    }
-                    if (obj[key].boreholeheader.drilldate) {
-                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-                        BoreholeHeader.appendChild(DrillDate.cloneNode(true))
-                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.drilldate))
-                    }
-                    if (obj[key].boreholeheader.xco) {
-                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-                        BoreholeHeader.appendChild(Xco.cloneNode(true))
-                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.xco))
-                    }
-                    if (obj[key].boreholeheader.yco) {
-                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-                        BoreholeHeader.appendChild(Yco.cloneNode(true))
-                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.yco))
-                    }
-                    if (obj[key].boreholeheader.coordzone) {
-                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-                        BoreholeHeader.appendChild(CoordZone.cloneNode(true))
-                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.coordzone))
-                    }
-                    if (obj[key].boreholeheader.elevation) {
-                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-                        BoreholeHeader.appendChild(Elevation.cloneNode(true))
-                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.elevation))
-                    }
-                    if (obj[key].boreholeheader.drilldepth) {
-                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-                        BoreholeHeader.appendChild(DrillDepth.cloneNode(true))
-                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.drilldepth))
-                    }
-                    if (obj[key].boreholeheader.geom) {
-                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-                        BoreholeHeader.appendChild(Geom.cloneNode(true))
-                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.geom))
-                    }
-                    if (obj[key].boreholeheader.geol) {
-                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-                        BoreholeHeader.appendChild(Geol.cloneNode(true))
-                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.geol))
-                    }
-                    if (obj[key].boreholeheader.soil) {
-                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-                        BoreholeHeader.appendChild(Soil.cloneNode(true))
-                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.soil))
-                    }
-                    if (obj[key].boreholeheader.veget) {
-                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-                        BoreholeHeader.appendChild(Veget.cloneNode(true))
-                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.veget))
-                    }
-                    if (obj[key].boreholeheader.groundwaterstep) {
-                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-                        BoreholeHeader.appendChild(GroundWaterStep.cloneNode(true))
-                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.groundwaterstep))
-                    }
-                    if (obj[key].boreholeheader.extraremarks) {
-                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
-                        BoreholeHeader.appendChild(ExtraRemarks.cloneNode(true))
-                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.extraremarks))
-                    }
-
-                    Object.values(obj[key].boreholedata).forEach(value => {
-                        //console.log(value);
-                        //console.log(obj[key].boreholeheader.borehole);
-                        //console.log(obj[key].boreholedata);
-                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"));
-                        var BoreholeData = XMLDocument.createElement("BoreholeData")
-                        if (obj[key].boreholeheader.borehole) {
-                            BoreholeData.appendChild(Borehole.cloneNode(true))
-                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.borehole))
-                        }
-                        if (value.depth) {
-                            BoreholeData.appendChild(Depth.cloneNode(true))
-                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.depth))
-                            BoreholeData.appendChild(StartDepth.cloneNode(true))
-                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.startdepth))
-                        }
-                        if (value.texture) {
-                            BoreholeData.appendChild(Texture.cloneNode(true))
-                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.texture))
-                        }
-                        if (value.organicmatter) {
-                            BoreholeData.appendChild(OrganicMatter.cloneNode(true))
-                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.organicmatter))
-                        }
-                        if (value.plantremains) {
-                            BoreholeData.appendChild(PlantRemains.cloneNode(true))
-                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.plantremains))
-                        }
-                        if (value.color) {
-                            BoreholeData.appendChild(Color.cloneNode(true))
-                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.color))
-                        }
-                        if (value.oxired) {
-                            BoreholeData.appendChild(OxiRed.cloneNode(true))
-                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.oxired))
-                        }
-                        if (value.gravelcontent) {
-                            BoreholeData.appendChild(GravelContent.cloneNode(true))
-                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.gravelcontent))
-                        }
-                        if (value.median) {
-                            BoreholeData.appendChild(Median.cloneNode(true))
-                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.median))
-                        }
-                        if (value.calcium) {
-                            BoreholeData.appendChild(Calcium.cloneNode(true))
-                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.calcium))
-                        }
-                        if (value.ferro) {
-                            BoreholeData.appendChild(Ferro.cloneNode(true))
-                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.ferro))
-                        }
-                        if (value.groundwater) {
-                            BoreholeData.appendChild(GroundWater.cloneNode(true))
-                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.groundwater))
-                        }
-                        if (value.sample) {
-                            BoreholeData.appendChild(Sample.cloneNode(true))
-                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.sample))
-                        }
-                        if (value.soillayer) {
-                            BoreholeData.appendChild(SoilLayer.cloneNode(true))
-                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.soillayer))
-                        }
-                        if (value.stratigraphy) {
-                            BoreholeData.appendChild(Stratigraphy.cloneNode(true))
-                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.stratigraphy))
-                        }
-                        if (value.remarks) {
-                            BoreholeData.appendChild(Remarks.cloneNode(true))
-                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.remarks))
-                        }
-                        BoreholeHeader.appendChild(BoreholeData.cloneNode(true))
-
-                    })
-
-                    //console.log(Object.values(obj[key])[0]);
-                    //console.log(obj[key].boreholeheader);
-                    //console.log(Object.values(obj[key])[1]);
-                    //console.log(obj[key].boreholedata);
-                    BoreholeHeader.appendChild(XMLDocument.createTextNode("\n"))
-                    LLG2012Dataset.appendChild(BoreholeHeader.cloneNode(true))
-
-                });
-
-                var llgtype;
-                switch (Tables[1].element.dataset.table) {
-                    case "llg_nl_boreholedata":
-                        llgtype = "0";
-                        break;
-                    case "llg_it_boreholedata":
-                        llgtype = "2";
-                        break;
-                    default: llgtype = "0";
-                }
-                GroupIdentity.appendChild(XMLDocument.createTextNode("\n\t"))
-                GroupIdentity.appendChild(Year)
-                GroupIdentity.lastElementChild.appendChild(XMLDocument.createTextNode("9999"))
-                GroupIdentity.appendChild(XMLDocument.createTextNode("\n\t"))
-                GroupIdentity.appendChild(Group)
-                GroupIdentity.lastElementChild.appendChild(XMLDocument.createTextNode("99"))
-                GroupIdentity.appendChild(XMLDocument.createTextNode("\n\t"))
-                GroupIdentity.appendChild(Names)
-                GroupIdentity.lastElementChild.appendChild(XMLDocument.createTextNode("collection"))
-                GroupIdentity.appendChild(XMLDocument.createTextNode("\n\t"))
-                GroupIdentity.appendChild(LLGType)
-                GroupIdentity.lastElementChild.appendChild(XMLDocument.createTextNode(llgtype))
-                GroupIdentity.appendChild(XMLDocument.createTextNode("\n"))
-
-                LLG2012Dataset.appendChild(XMLDocument.createTextNode("\n"))
-                LLG2012Dataset.appendChild(GroupIdentity)
-                LLG2012Dataset.appendChild(XMLDocument.createTextNode("\n"))
-                XMLDocument.appendChild(LLG2012Dataset)
-
-                let file = new File(['<?xml version="1.0" standalone="yes"?>' + "\n" + (new XMLSerializer()).serializeToString(XMLDocument)], { type: 'text/xml' });
-                let url = URL.createObjectURL(file);
-                let elem = window.document.createElement('a');
-                elem.href = url;
-                elem.download = "LLGData-" + document.getElementById("mapinfo_bounds_sw").innerHTML.replace(", ", "_") + "-" + document.getElementById("mapinfo_bounds_ne").innerHTML.replace(", ", "_") + ".xml";
-                document.body.appendChild(elem);
-                elem.click();
-                document.body.removeChild(elem);
-                URL.revokeObjectURL(url); //Releases the resources
-            }
-
-            XMLSchema();
-
-        }, reason => {
-            console.log(reason)
-        }).catch(e => {
-            console.log(e)
-        });
 
     }
 
 }
 
 export default ajaxMap;
-
-/*
-(function () {
-
-    window["ajaxMaps"] = [];
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const maps = document.querySelectorAll('div[data-ajax="map"]');
-        maps.forEach((element, key) => {
-            window["ajaxMaps"][key] = new ajaxMap(element, key, mapOptions);
-        })
-    })
-})();
-*/
