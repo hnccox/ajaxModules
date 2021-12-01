@@ -5,10 +5,14 @@ import { default as ajax } from "/e107_plugins/ajaxDBQuery/beta/js/ajaxDBQuery.j
 import { default as jsonSQL } from "/e107_plugins/jsonSQL/js/jsonSQL.js";
 
 class ajaxTemplate {
-	constructor(element, index, object = {}) {
+	constructor(element, index, templateOptions = {}) {
 		console.log("ajaxTemplate constructor");
 
-		for (const [key, value] of Object.entries(object)) {
+		while (element.firstChild) {
+			element.removeChild(element.firstChild);
+		}
+
+		for (const [key, value] of Object.entries(templateOptions)) {
 			this[key] = value;
 		}
 
@@ -16,24 +20,15 @@ class ajaxTemplate {
 		this.element = element;
 		this.index = index;
 
+		// this.dataset = {};
+		// this.dataset.columns = element.dataset.columns;
+		// this.dataset.order_by = element.dataset.order_by;
+		// this.dataset.where = element.dataset.where;
+
 		element.dataset.key = index;
 		element.setAttribute("id", "ajaxTemplates[" + index + "]");
 
-		if (!element.dataset.master) {
-			let method = "GET";
-			let sql = {
-				"url": element.dataset.url,
-				"db": element.dataset.db,
-				"query": JSON.parse(element.dataset.query)
-			}
-			ajax(method, sql, this.templateTabulate.bind(this));
-
-		}
-
-		this.dataset = {};
-		this.dataset.columns = element.dataset.columns;
-		this.dataset.order_by = element.dataset.order_by;
-		this.dataset.where = element.dataset.where;
+		this.templateCreate();
 
 	}
 
@@ -50,6 +45,8 @@ class ajaxTemplate {
 	}
 
 	eventTransmitter(e, i) {
+		console.info(`%c${this.element.id} eventTransmitter`, "color: #28a745");
+		if(!e.origin) { e.origin = this.element.id }
 		/*
 		console.log("TEMPLATE eventTransmitter");
 		console.log(e.type);
@@ -64,13 +61,14 @@ class ajaxTemplate {
 	}
 
 	eventReceiver(e, i) {
-		console.log("eventReceiver");
+		console.info(`%c${this.element.id} eventReceiver`, "color: #28a745");
 		// console.log(e);
 		// console.log(i);
 
-		// if (this.selectedDetail == i) {
-		// 	return;
-		// }
+		if (this.selectedDetail == i) {
+			this.eventTransmitter(e, i);
+			return;
+		}
 
 		const mouseover = () => {
 			//console.log(i);
@@ -94,27 +92,27 @@ class ajaxTemplate {
 
 			//element.dataset.columns = this.dataset.columns;
 			//element.dataset.order_by = this.dataset.order_by;
-			this.element.dataset.where = this.dataset.where;
+			//this.element.dataset.where = this.dataset.where;
 			//element.dataset.columns = element.dataset.columns.replace(":lat", lat).replace(":lng", lng);
 			//element.dataset.order_by = element.dataset.order_by.replace(":lat", lat).replace(":lng", lng);
-			this.element.dataset.where = this.element.dataset.where.replace(":uid", i);
+			//this.element.dataset.where = this.element.dataset.where.replace(":uid", i);
 
-			let query = null; //JSON.parse(this.element.dataset.query) || null;
-			let method = "GET";
-			let sql = {
-				"url": this.element.dataset.url,
-				"db": this.element.dataset.db,
-				"query": query
-			}
-			sql = jsonSQL.query.replace(sql, [":uid"], [i]);
-			ajax(method, sql, this.templateTabulate.bind(this));
+			// let query = null; //JSON.parse(this.element.dataset.query) || null;
+			// let method = "GET";
+			// let sql = {
+			// 	"url": template.dataset.url,
+			// 	"db": template.dataset.db,
+			// 	"query": JSON.parse(template.dataset.query)
+			// }
+			// sql = jsonSQL.query.replace(sql, [":uid"], [i]);
+			// ajax(method, sql, this.templateTabulate.bind(this));
 			/*
 			let slaveTables = document.querySelectorAll('[data-ajax="table"][data-master="' + this.element.id + '"]');
 			slaveTables.forEach((table) => {
 				ajax(table, ajaxTables[table.dataset.index].tableTabulate.bind(ajaxTables[table.dataset.index]);
 			});
 			*/
-			//this.eventTransmitter(e, i);
+			this.eventTransmitter(e, i);
 		}
 
 		switch (e.type) {
@@ -138,10 +136,35 @@ class ajaxTemplate {
 		}
 	}
 
+	templateCreate() {
+		console.info("%ctemplateCreate", "color: #28a745");
+
+		let self = this;
+		let template = this.element;
+
+		// let htmlRelativeUrl = this.element.dataset.htmlRelativeUrl;
+		// let baseUrl = this.element.dataset.baseUrl;
+		// const htmlUrl = new URL(htmlRelativeUrl, baseUrl).href;
+		// let template = fetch(htmlUrl).then((response) => { response.text()});
+
+		//console.log(template);
+
+		if (!template.dataset.master) {
+			let method = "GET";
+			let sql = {
+				"url": template.dataset.url,
+				"db": template.dataset.db,
+				"query": JSON.parse(template.dataset.query)
+			}
+			ajax(method, sql, this.templateTabulate.bind(this));
+		}
+
+	}
+
 	templateCallback() {
 		console.log("templateCallback");
 
-		let data = this.data;
+		let dataset = this.obj.dataset;
 
 		// TO DO: send "update" event to Receivers
 		//console.log(this.element.id);
@@ -160,10 +183,10 @@ class ajaxTemplate {
 			ajax(method, sql, ajaxTables[table.dataset.index].tableTabulate.bind(ajaxTables[table.dataset.index]));
 		});
 
-		if (this._templateCallback.functions) {
+		if (this?._templateCallback?.functions) {
 			let callbacks = this._templateCallback.functions;
 			Object.keys(callbacks).forEach(function (value) {
-				callbacks[value](data);
+				callbacks[value](dataset);
 			})
 		}
 	}
@@ -174,11 +197,19 @@ class ajaxTemplate {
 		console.log("templateTabulate");
 		console.log(response);
 
-		const obj = this.parseResponse?.(response) || response;
-
 		let self = this;
 		let template = this.element;
+		
+		const obj = this.parseResponse?.(response) || response;
+		const data = obj.data;
+		const dataset = obj.dataset;
+		const records = obj?.records || 1;
+		const totalrecords = obj?.totalrecords || 1;
 
+		// console.log(data);
+		// console.log(dataset);
+		// console.log(records);
+		// console.log(totalrecords);
 		//const obj = response.data.dataset;
 		// const records = obj["records"];
 		// const totalrecords = obj["totalrecords"];
@@ -193,33 +224,33 @@ class ajaxTemplate {
         //         return false;
         //     }
         // }
-		Object.keys(obj).forEach(function (key) {
+		Object.keys(dataset).forEach(function (key) {
 			// Is our value a string or an object/array?
 			var NodeList = self.element.querySelectorAll('[data-variable="' + key + '"]');
 			//console.log(key, NodeList);
 			NodeList.forEach(function (el) {
 				if (el.tagName == "INPUT") {
 					if (el.type == "date") {
-						var date = new Date(Date.parse(obj[key]));
-						obj[key] = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
+						var date = new Date(Date.parse(dataset[key]));
+						dataset[key] = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
 					}
-					el.value = obj[key];
+					el.value = dataset[key];
 				} else {
 					if (key == "drilldate") {
-						var date = new Date(Date.parse(obj[key]));
-						obj[key] = ('0' + date.getDate()).slice(-2) + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + date.getFullYear();
+						var date = new Date(Date.parse(dataset[key]));
+						dataset[key] = ('0' + date.getDate()).slice(-2) + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + date.getFullYear();
 					}
-					el.innerHTML = obj[key];
+					el.innerHTML = dataset[key];
 				}
 			});
 
 		});
 
-		template.dataset.id = obj[Object.keys(obj)[0]];
+		template.dataset.id = dataset[Object.keys(dataset)[0]];
 
 		// TODO: undefined?
-		this.data = obj;
-		this.templateCallback();
+		this.obj = obj;
+		this.templateCallback(template);
 
 	}
 

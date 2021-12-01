@@ -7,6 +7,10 @@ class ajaxTable {
 	constructor(element, index, tableOptions = {}) {
 		console.log("ajaxTable constructor");
 
+		while (element.firstChild) {
+			element.removeChild(element.firstChild);
+		}
+
 		for (const [key, value] of Object.entries(tableOptions)) {
 			this[key] = value;
 		}
@@ -25,29 +29,7 @@ class ajaxTable {
 		// (No need to sort a map..., change the sort of the current dataset with javascript)
 		// If we change the limit, use the limit of the master...
 
-		if (element.getElementsByTagName('tbody').length == 0) {
-			this.tableCreate();
-		}
-
-		if (!element.dataset.master) {
-			let method = "GET";
-			let sql = {
-				"url": element.dataset.url,
-				"db": element.dataset.db,
-				"query": JSON.parse(element.dataset.query)
-			}
-			// Object.keys(sql.query).forEach((key) => {
-			// 	switch(Object.keys(sql.query[key])[0]) {
-			// 		case "limit":
-			// 			sql.query[key].limit = parseInt(element.dataset.limit, 10);
-			// 			break;
-			// 		case "offset":
-			// 			sql.query[key].offset = parseInt(element.dataset.offset, 10) * parseInt(element.dataset.limit, 10);
-			// 			break;
-			// 	}
-			// })
-			ajax(method, sql, this.tableTabulate.bind(this));
-		}
+		this.tableCreate();
 
 	} // End of constructor
 
@@ -66,17 +48,13 @@ class ajaxTable {
 	eventReceiver(e, i) {
 		console.info(`%c${this.element.id} eventReceiver`, "color: #28a745");
 
-		let self = this;
-
-		if (this.element.querySelectorAll('tr[data-id="' + i + '"]')[0]) {
-			var row = this.element.querySelectorAll('tr[data-id="' + i + '"]')[0];
+		if (!this.element.querySelectorAll('tr[data-id="' + i + '"]')[0] || this.selectedRows[i]) {
+			return;
 		} else {
-			return;
+			var row = this.element.querySelectorAll('tr[data-id="' + i + '"]')[0];
 		}
 
-		if (this.selectedRows[i]) {
-			return;
-		}
+		let self = this;
 
 		const mouseover = () => {
 			//console.log(i);
@@ -113,16 +91,6 @@ class ajaxTable {
 			this.eventTransmitter(e, i);
 		}
 
-		const selected = () => {
-			if (Object.keys(self.selectedRows).length > 0) {
-				Object.keys(self.selectedRows).forEach(function (key) {
-					self.rows[key].style.backgroundColor = null;
-					delete self.selectedRows[key];
-				})
-			}
-			this.eventTransmitter(e, i);
-		}
-
 		switch (e.type) {
 			case "mouseover":
 				mouseover();
@@ -138,9 +106,6 @@ class ajaxTable {
 				break;
 			case "click":
 				click();
-				break;
-			case "selected":
-				selected();
 				break;
 			default:
 				break;
@@ -174,7 +139,14 @@ class ajaxTable {
 		// TODO: Download
 		const params = new URLSearchParams(window.location.search)
 
-		let caption = table.getElementsByTagName("caption")[0];
+		if (table.dataset.caption) {
+			let caption = document.createElement('caption');
+			caption.innerText = table.dataset.caption;
+			table.appendChild(caption);
+		}
+
+		if (!table.dataset.limit) { table.dataset.limit = 20 }
+		if (!table.dataset.offset) { table.dataset.offset = 0 }
 		// if (params.has("yeargroup")) {
 		// 	var button = document.createElement("button");
 		// 	button.classList.add("btn", "btn-default", "pull-right");
@@ -415,12 +387,22 @@ class ajaxTable {
 			});
 		}
 
+		if (!table.dataset.master) {
+			let method = "GET";
+			let sql = {
+				"url": table.dataset.url,
+				"db": table.dataset.db,
+				"query": JSON.parse(table.dataset.query)
+			}
+			ajax(method, sql, this.tableTabulate.bind(this));
+		}
+
 	}
 		
 	tableCallback(element) {
 		console.log("%ctableCallback", "color:orange");
 
-		if (this._tableCallback.functions) {
+		if (this?._tableCallback?.functions) {
 			let callbacks = this._tableCallback.functions;
 			Object.keys(callbacks).forEach(function (value) {
 				callbacks[value](element);
@@ -430,27 +412,20 @@ class ajaxTable {
 	}
 
 	tableTabulate(response) {
-		if(response.type !== "success") return response;
-		
 		console.log("%ctableTabulate", "color:yellow");
-		console.log(response);
+		if(response.type !== "success") return response;
+		// window.history.pushState({page: this.element.dataset.offset + 1}, "", "?page="+(parseInt(this.element.dataset.offset, 10) + 1));
 
 		let self = this;
 		let table = this.element;
 		let tfoot = table.getElementsByClassName("table-footer")[0];
-
-		// window.history.pushState({page: this.element.dataset.offset + 1}, "", "?page="+(parseInt(this.element.dataset.offset, 10) + 1));
-
-		const obj = self.parseResponse(response);
-
-		const data = response.data;
-		// const obj = response.data.dataset;
-		const records = data["records"];
-		const totalrecords = data["totalrecords"];
-		delete data.dataset;
-		delete data.records;
-		delete data.totalrecords;
 		
+		const obj = this?.parseResponse?.(response) || response;
+		const data = obj.data;
+		const dataset = obj.dataset;
+		const records = obj?.records || 0;
+		const totalrecords = obj?.totalrecords || 0;
+
 		// TODO: Sort object by property of object
 		let tbody = table.getElementsByTagName("tbody")[0];
 		let tbodies = table.querySelectorAll("tbody");
@@ -459,7 +434,7 @@ class ajaxTable {
 		});
 
 		var rowcount = 0;
-		Object.keys(obj).forEach(function (key) {
+		Object.keys(dataset).forEach(function (key) {
 			if (parseInt(key, 10) === parseInt(table.dataset.preview, 10)) {
 				// Always show the first preview results (default 3), add new tbody after that
 				tbody.insertAdjacentElement('afterend', document.createElement('tbody'));
@@ -483,12 +458,12 @@ class ajaxTable {
 
 			var row = tbody.insertRow(rowcount);
 			var cellcount = 0;
-			row.dataset.id = obj[key][Object.keys(obj[key])[0]];
+			row.dataset.id = dataset[key][Object.keys(dataset[key])[0]];
 			if (self.selectedRows[row.dataset.id]) {
 				row.style.backgroundColor = "rgb(255, 205, 0)";
 			}
 			if (tbody.dataset.href == "1") {
-				row.dataset.href = Object.keys(obj[key])[0] + ".php?" + Object.keys(obj[key])[0] + "=" + obj[key][Object.keys(obj[key])[0]];
+				row.dataset.href = Object.keys(dataset[key])[0] + ".php?" + Object.keys(dataset[key])[0] + "=" + dataset[key][Object.keys(dataset[key])[0]];
 			}
 
 			// TODO: If slave table, do not redirect to another page...
@@ -576,7 +551,7 @@ class ajaxTable {
 
 			// TODO: Only extract the data for which there are columns
 			table.dataset.columns.split(",").forEach((e) => {
-				row.insertCell(cellcount).innerText = obj[key][e];
+				row.insertCell(cellcount).innerText = dataset[key][e];
 				cellcount++;
 			})
 			/*
@@ -591,7 +566,7 @@ class ajaxTable {
 
 		table.getElementsByClassName("currentpage")[0].innerText = parseInt(table.dataset.offset, 10) + 1;
 		table.dataset.totalrecords = totalrecords;
-		var limit = Object.keys(obj).length || 0;
+		var limit = Object.keys(dataset).length || 0;
 		switch (table.dataset.type) {
 			case "slave":
 				table.getElementsByClassName("totalrecords")[0].innerText = `Records listed: ${limit}`;
@@ -655,7 +630,7 @@ class ajaxTable {
 				table.getElementsByTagName("nav")[0].getElementsByTagName("div")[0].lastElementChild.classList.remove("disabled");
 		}
 
-		this.dataset = obj;
+		this.obj = obj;
 		this.tableCallback(table);
 
 	}

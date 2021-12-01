@@ -9,6 +9,10 @@
 	}
 }
 
+.leaflet-touch .leaflet-bar .leaflet-bar-part.leaflet-bar-part-single.leaflet-locate-text-active {
+	padding: 0 7px;
+}
+
 #layout-jumbotron-fullscreen {
 	overflow: hidden;
 }
@@ -47,12 +51,21 @@ footer {
 .fullscreen {
 	display: flex;
 	flex-direction: column;
-	height: calc(100vh - 56px);
+	top: 56px;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	height: calc(100% - 56px);
+	width: 100%;
 	overflow: hidden;
 }
 
 .fullscreen > .map {
 	overflow: revert;
+}
+
+.fullscreen table[data-ajax] tfoot {
+	display: none;
 }
 
 .fullscreen + footer {

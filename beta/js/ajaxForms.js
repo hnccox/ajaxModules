@@ -12,23 +12,28 @@ import { default as ajax } from "/e107_plugins/ajaxDBQuery/beta/js/ajaxDBQuery.j
 // }
 
 class ajaxForm {
-    constructor(element, index, object = {}) {
+    constructor(element, index, formOptions = {}) {
         console.log("ajaxForm constructor");
 
-        for (const [key, value] of Object.entries(object)) {
+        while (element.firstChild) {
+			element.removeChild(element.firstChild);
+		}
+
+        for (const [key, value] of Object.entries(formOptions)) {
             this[key] = value;
         }
 
         //this.callbacks = callbacks;
         this.element = element;
         this.index = index;
-        this.dataset = {};
-        this.dataset.db = element.dataset.db;
-        this.dataset.table = element.dataset.table;
-        this.dataset.columns = element.dataset.columns;
-        this.dataset.order_by = element.dataset.order_by;
-        this.dataset.where = element.dataset.where;
-        this.dataset.limit = element.dataset.limit;
+        
+        // this.dataset = {};
+        // this.dataset.db = element.dataset.db;
+        // this.dataset.table = element.dataset.table;
+        // this.dataset.columns = element.dataset.columns;
+        // this.dataset.order_by = element.dataset.order_by;
+        // this.dataset.where = element.dataset.where;
+        // this.dataset.limit = element.dataset.limit;
 
         element.dataset.key = index;
         element.setAttribute("id", "Forms[" + index + "]");

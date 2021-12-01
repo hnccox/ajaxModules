@@ -6,6 +6,13 @@ input:disabled {
 	-moz-box-shadow: none;
 	box-shadow: none;
 }
+#div-templateContent div[data-ajax] {
+	display: none;
+}
+
+#div-templateContent div[data-ajax].show.active {
+	display: block;
+}
 
 div[data-ajax] .panel-heading > button.btn-primary {
 	border-color: #000;
