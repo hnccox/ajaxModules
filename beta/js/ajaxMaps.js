@@ -348,6 +348,9 @@ class ajaxMap {
         // overlayMaps object structure:
         // overlayMaps = { layer: overlayGroups[layer], layer: overlayGroups[layer] }
         L.control.layers(baseMaps, overlayMaps).addTo(map);
+
+        L.control.addlayer().addTo(map);
+        
         L.control.scale({ position: 'bottomleft', maxWidth: 200 }).addTo(map);
         L.control.locate({
             /** Position of the control */
@@ -864,9 +867,10 @@ class ajaxMap {
                     if (x == 0) {
                         var nav = document.getElementById(self.element.id).parentElement.querySelector('nav');
                         var div = document.getElementById(self.element.id).parentElement.querySelector('div.tab-content');
-                        document.getElementById(self.element.id).style.height = "100%";
+                        document.getElementById(self.element.id).style.height = '100%';
                         document.getElementById(self.element.id).parentElement.removeChild(nav);
                         document.getElementById(self.element.id).parentElement.removeChild(div);
+                        document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = '0';
                     }
 
                 }
@@ -1010,7 +1014,7 @@ class ajaxMap {
                         })
                     }, 1000);
                 }
-                if (!this.map.boundsBox.contains(this.map.location)) {
+                if (!this.map.boundsRect.contains(this.map.center)) {
                     console.info(`%coutOfBounds`, `color:${this.colors.consoleInfo}`)
 
                     // TODO: Static map: If center position is outside of bounds, recenter and redraw
@@ -1093,14 +1097,41 @@ class ajaxMap {
             alert(e.message)
         })
         map.on('locateactivate', e => {
-            alert('Activate Live Location')
+            //alert('Activate Live Location')
+            console.info(`%clocationactivate`, `color:${this.colors.consoleInfo}`)
             this.map.location = true;
+            this.map.boundsBox = false;
+            Object.keys(overlayMaps).forEach(function (key) {
+                if (map.hasLayer(self._overlayGroups[key]?.markerLayer)) {
+                    self._overlayGroups[key].markerLayer.eachLayer(function (marker) {
+                        self._overlayGroups[key].markerLayer.removeLayer(marker);
+                    })
+                }
+            })
+
+            if(document.querySelector('.fullscreen .leaflet.map') && !window.fullScreen) {
+                var elem = document.querySelector('html');
+                elem.requestFullscreen();
+                this.map.fullscreen = true;
+            }
+
         })
         map.on('locatedeactivate', e => {
-            alert('Deactivate Live Location')
+            //alert('Deactivate Live Location')
+            console.info(`%clocationdeactivate`, `color:${this.colors.consoleInfo}`)
             this.map.location = false;
+            this.map.center = map.getCenter();
+            this.map.bounds = map.getBounds();
+            this.map.zoom = map.getZoom();
             this.map.boundsBox = false;
             this.drawnItems.removeLayer(this.map.boundsRect);
+            
+            if(document.querySelector('.fullscreen .leaflet.map') && this.map.fullscreen) {
+                if (!window.screenTop && !window.screenY) {
+                    document.exitFullscreen();
+                }
+                this.map.fullscreen = false;
+            }
         })
         // Object started
         map.on(L.Draw.Event.DRAWSTART, function (event) {
@@ -1577,8 +1608,8 @@ class ajaxMap {
 
         } else {
 
-            document.getElementById(self.element.id).style.height = "calc(60vh - 56px)";
-            document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = "56px";
+            document.getElementById(self.element.id).style.height = 'calc(60vh - 56px)';
+            document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = '56px';
 
             if (!container.querySelector('nav')) {
                 var nav = document.createElement('nav');
@@ -1655,9 +1686,10 @@ class ajaxMap {
                 if (x == 0) {
                     var nav = document.getElementById(self.element.id).parentElement.querySelector('nav');
                     var div = document.getElementById(self.element.id).parentElement.querySelector('div.tab-content');
-                    document.getElementById(self.element.id).style.height = "100%";
+                    document.getElementById(self.element.id).style.height = '100%';
                     document.getElementById(self.element.id).parentElement.removeChild(nav);
                     document.getElementById(self.element.id).parentElement.removeChild(div);
+                    document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = '0';
                 }
             })
             li.append(button, close);
