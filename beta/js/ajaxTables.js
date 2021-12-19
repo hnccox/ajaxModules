@@ -7,6 +7,13 @@ class ajaxTable {
 	constructor(element, index, tableOptions = {}) {
 		console.log("ajaxTable constructor");
 
+		this.colors = {};
+		this.colors.consoleLog = '#FFFFFF';
+		this.colors.consoleInfo = '#28a745';
+        this.colors.consoleWarn = '#FFFF00';
+        this.colors.consoleError = '#FF0000';
+		this.colors.consoleSuccess = '#28a745';
+
 		while (element.firstChild) {
 			element.removeChild(element.firstChild);
 		}
@@ -46,12 +53,13 @@ class ajaxTable {
 	}
 
 	eventReceiver(e, i) {
-		console.info(`%c${this.element.id} eventReceiver`, "color: #28a745");
+		console.info(`%c${this.element.id} eventReceiver: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
 
-		if (!this.element.querySelectorAll('tr[data-id="' + i + '"]')[0] || this.selectedRows[i]) {
+		if (!this.element.querySelector('tr[data-id="' + i + '"]') || this.selectedRows[i]) {
+			this.eventTransmitter(e, i);
 			return;
 		} else {
-			var row = this.element.querySelectorAll('tr[data-id="' + i + '"]')[0];
+			var row = this.element.querySelector('tr[data-id="' + i + '"]');
 		}
 
 		let self = this;
@@ -114,7 +122,7 @@ class ajaxTable {
 	}
 
 	eventTransmitter(e, i) {
-		console.info(`%c${this.element.id} eventTransmitter`, "color: #28a745");
+		console.info(`%c${this.element.id} eventTransmitter: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
 		if(!e.origin) { e.origin = this.element.id }
 
 		let masterMaps = document.querySelectorAll(`[id='${this.element.dataset.master}']`);
@@ -400,8 +408,7 @@ class ajaxTable {
 	}
 		
 	tableCallback(element) {
-		console.log("%ctableCallback", "color:orange");
-
+		console.info(`%ctableCallback`, `color:${this.colors.consoleWarn}`);
 		if (this?._tableCallback?.functions) {
 			let callbacks = this._tableCallback.functions;
 			Object.keys(callbacks).forEach(function (value) {
@@ -412,7 +419,7 @@ class ajaxTable {
 	}
 
 	tableTabulate(response) {
-		console.log("%ctableTabulate", "color:yellow");
+		console.info(`%ctableTabulate`, `color:${this.colors.consoleInfo}`);
 		if(response.type !== "success") return response;
 		// window.history.pushState({page: this.element.dataset.offset + 1}, "", "?page="+(parseInt(this.element.dataset.offset, 10) + 1));
 
@@ -509,7 +516,7 @@ class ajaxTable {
 						});
 						break;
 					case "mouseup":
-						row.addEventListener('mousedown', (e) => {
+						row.addEventListener('mouseup', (e) => {
 							if (Object.keys(self.selectedRows).length > 0) {
 								if (!self.selectedRows[row.dataset.id]) {
 									Object.values(self.selectedRows).forEach(function (row) {

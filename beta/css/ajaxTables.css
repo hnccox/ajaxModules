@@ -135,10 +135,17 @@ table[data-ajax] tbody tr td {
 	border-radius: 0.1rem;
 }
 
+/* Tab container */
+
 ul#nav-tab li.nav-item button.btn-close {
 	visibility: hidden;
 }
 
 ul#nav-tab li.nav-item:hover button.btn-close {
 	visibility: visible;
+}
+
+.nav-tabs .nav-link {
+	writing-mode: vertical-rl;
+	text-orientation: mixed;
 }

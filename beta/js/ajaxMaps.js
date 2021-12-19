@@ -29,11 +29,12 @@ class ajaxMap {
     constructor(element, index, mapOptions = {}) {
         console.log("ajaxMap constructor");
 
-        this.colors = {};
-        this.colors.consoleInfo = '#28a745';
-        this.colors.consoleWarn = '#28a745';
-        this.colors.consoleLog = '#28a745';
-        this.colors.consoleError = '#28a745';
+		this.colors = {};
+		this.colors.consoleLog = '#FFFFFF';
+		this.colors.consoleInfo = '#28a745';
+        this.colors.consoleWarn = '#FFFF00';
+        this.colors.consoleError = '#FF0000';
+		this.colors.consoleSuccess = '#28a745';
 
         while (element.firstChild) {
             element.removeChild(element.firstChild);
@@ -347,11 +348,12 @@ class ajaxMap {
         }
         // overlayMaps object structure:
         // overlayMaps = { layer: overlayGroups[layer], layer: overlayGroups[layer] }
-        L.control.layers(baseMaps, overlayMaps).addTo(map);
-
-        L.control.addlayer().addTo(map);
-        
         L.control.scale({ position: 'bottomleft', maxWidth: 200 }).addTo(map);
+        L.control.wmsLegend({ maxWidth: 50 }).addTo(map);
+        //L.control.addLayer().addTo(map);
+
+        L.control.layers(baseMaps, overlayMaps).addTo(map);
+        //if(geolocation) {
         L.control.locate({
             /** Position of the control */
             position: 'topright',
@@ -548,7 +550,7 @@ class ajaxMap {
                 this.options.followCompassStyle = L.extend({}, this.options.compassStyle, this.options.followCompassStyle);
             },
         }).addTo(map);
-
+        //}
         L.Polyline.include({
             contains: function () { return; }
         });
@@ -823,7 +825,14 @@ class ajaxMap {
                 if (self._overlayGroups[layer]?.["markerLayer"]) {
                     self.tableCreate(layer);
                 }
+
+                if (self._overlayMaps[layer]?.legendParams?.url && map.wmsLegend) {
+                    map.wmsLegend.addLegend(self._overlayMaps[layer]);
+                }
             }
+
+
+
         })
 
         var refresh;
@@ -834,6 +843,11 @@ class ajaxMap {
                     self.layerUpdate(e.name, self.tableCreate(e.name));
                 } else {
                     self.layerUpdate(e.name);
+                }
+
+                if (self._overlayMaps[e.name]?.legendParams?.url && map.wmsLegend) {
+                    map.wmsLegend.addLegend(self._overlayMaps[e.name]);
+
                 }
             }
         })
@@ -932,7 +946,7 @@ class ajaxMap {
                         color: 'red',
                         weight: 3,
                         opacity: 0.5,
-                        fillOpacity: 0.1,
+                        fillOpacity: 0.02,
                         smoothFactor: 1
                     })
                     this.map.boundsRect = boundsRect;
@@ -999,7 +1013,7 @@ class ajaxMap {
                         color: 'red',
                         weight: 3,
                         opacity: 0.5,
-                        fillOpacity: 0.1,
+                        fillOpacity: 0.02,
                         smoothFactor: 1
                     })
                     this.map.boundsRect = boundsRect;
@@ -1014,7 +1028,7 @@ class ajaxMap {
                         })
                     }, 1000);
                 }
-                if (!this.map.boundsRect.contains(this.map.center)) {
+                if (!this.map.boundsBox.contains(this.map.center)) {
                     console.info(`%coutOfBounds`, `color:${this.colors.consoleInfo}`)
 
                     // TODO: Static map: If center position is outside of bounds, recenter and redraw
@@ -1050,6 +1064,8 @@ class ajaxMap {
                         }
                     })
 
+                } else {
+                    console.info(`%cinsideBounds`, `color:${this.colors.consoleInfo}`)
                 }
             } else {
 
@@ -1090,6 +1106,7 @@ class ajaxMap {
             (geolocation_accuracy) ? map.removeLayer(geolocation_accuracy) : geolocation_accuracy = L.circle(e.latlng, radius).addTo(map);
 
             // TODO: Disable zoomend layerUpdate unless we moved outside the margins within our original bounds
+            this.map.center = map.getCenter();
 
         })
         map.on('locationerror', e => {
@@ -1109,7 +1126,7 @@ class ajaxMap {
                 }
             })
 
-            if(document.querySelector('.fullscreen .leaflet.map') && !window.fullScreen) {
+            if (document.querySelector('.fullscreen .leaflet.map') && !window.fullScreen) {
                 var elem = document.querySelector('html');
                 elem.requestFullscreen();
                 this.map.fullscreen = true;
@@ -1125,8 +1142,8 @@ class ajaxMap {
             this.map.zoom = map.getZoom();
             this.map.boundsBox = false;
             this.drawnItems.removeLayer(this.map.boundsRect);
-            
-            if(document.querySelector('.fullscreen .leaflet.map') && this.map.fullscreen) {
+
+            if (document.querySelector('.fullscreen .leaflet.map') && this.map.fullscreen) {
                 if (!window.screenTop && !window.screenY) {
                     document.exitFullscreen();
                 }
@@ -1224,18 +1241,24 @@ class ajaxMap {
     }
 
     eventReceiver(e, i) {
-        console.info(`%c${this.element.id} eventReceiver`, `color:${this.colors.consoleInfo}`);
+        console.info(`%c${this.element.id} eventReceiver: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
         // console.log(e);
         // console.log(i);
+
+        /* 
+            If event comes from parent -> send to children
+            If event comes from child -> send to parent and (children - child)
+        */
 
         if (this.selectedMarkers[i]) {
             this.eventTransmitter(e, i);
             return;
+        } else {
+            var layer = document.querySelector(`[id='${e.origin}']`).dataset.index;
+            var marker = this._overlayGroups[layer].markers[i];
         }
 
         let self = this;
-        var layer = document.querySelector(`[id='${e.origin}']`).dataset.layer;
-        var marker = self._overlayGroups[layer].markers[i];
 
         const mouseover = () => {
             marker.setIcon(marker.properties.highlightIcon);
@@ -1284,21 +1307,21 @@ class ajaxMap {
     }
 
     eventTransmitter(e, i) {
-        console.info(`%c${this.element.id} eventTransmitter`, `color:${this.colors.consoleInfo}`);
-        // TODO: Get layer in which event is transmitted from!
-        // TODO: We need the target layer, even if it comes from child..
-        //if (!e.target.properties.layer) { return; }
+        console.info(`%c${this.element.id} eventTransmitter: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
         if (!e.origin) { e.origin = this.element.id }
+
+        // if (e.type == 'click'
+        //     && this.selectedMarkers[i]
+        //     && this.element.parentElement.classList.contains('fullscreen')
+        //     && document.querySelector('#div-templateContent')) {
+        //     // TODO: Scroll templateContainer in view and show current layer
+        //     document.querySelector(`[data-ajax='template'][data-master='${this.element.id}'][data-layer='${this.selectedMarkers[i].properties.layer}']`).scrollIntoView();
+        //     this.eventTransmitter(e, i);
+        //     return;
+        // }
 
         // TODO: Check if fullscreen and event is click and #div-templateContent and mobile or desktop
         if (e.type == 'click' && this.element.parentElement.classList.contains('fullscreen') && document.querySelector('#div-templateContent')) {
-            if (this.onMobile && e.origin === this.element.id) {
-                // Click must come from map
-                document.querySelector('#div-templateContent').scrollIntoView();
-            } else {
-                // Click must come from table
-                document.querySelector('#div-templateContent').scrollIntoView();
-            }
             // Correct template comes into view ('show', 'active')
             if (!document.querySelector('#div-templateContent').querySelector('iframe')) {
                 var iframe = document.createElement('iframe');
@@ -1491,32 +1514,12 @@ class ajaxMap {
             var endTime = performance.now()
             console.log(`Call to iterate Object took ${endTime - startTime} milliseconds`)
 
-            // var startTime = performance.now()
-            // for (let [key, marker] of Object.entries(self._overlayGroups[layer].markers)) {
-            //     // self._overlayGroups[layer]["markerLayer"].addLayer(marker);
-            //     // if (self.selectedMarkers[key]) {
-            //     //     marker.setIcon(marker.properties.selectedIcon);
-            //     // }
-            //     // TODO: Taking too long for each marker...
-            //     // Maybe remove ALL markers and add marker within bounds..
-            //     // if (bounds.contains(marker.getLatLng())) {
-            //     //     self._overlayGroups[layer]["markerLayer"].addLayer(marker);
-            //     //     if (self.selectedMarkers[key]) {
-            //     //         marker.setIcon(marker.properties.selectedIcon);
-            //     //     }
-            //     // } else {
-            //     //     self._overlayGroups[layer]["markerLayer"].removeLayer(marker);
-            //     // }
-            // }
-            // var endTime = performance.now()
-            // console.log(`Call to doSomething took ${endTime - startTime} milliseconds`)
-
             if (self._overlayMaps[layer]?.layerParams.cacheReturn == true) {
                 storageHandler.storage.session.set(layer, 'cached');
             }
 
-            if (document.querySelector(`[data-ajax='table'][data-master='${self.element.id}'][data-layer='${layer}']`)) {
-                let table = document.querySelector(`[data-ajax='table'][data-master='${self.element.id}'][data-layer='${layer}']`);
+            if (document.querySelector(`[data-ajax='table'][data-master='${self.element.id}'][data-index='${layer}']`)) {
+                let table = document.querySelector(`[data-ajax='table'][data-master='${self.element.id}'][data-index='${layer}']`);
                 window["ajaxTables"][table.dataset.index].tableTabulate(obj);
             }
 
@@ -1562,6 +1565,7 @@ class ajaxMap {
 
         let self = this;
 
+        /* Select the container element */
         var container = document.getElementById(self.element.id).parentElement;
 
         if (this.onMobile) {
@@ -1575,7 +1579,7 @@ class ajaxMap {
                 div.style.left = '0';
                 div.style.height = '100vh';
                 div.style.backgroundColor = 'inherit';
-                container.appendChild(div);
+
                 var button = document.createElement('button');
                 button.type = 'button';
                 button.classList.add('btn-close', 'mt-3', 'pull-left');
@@ -1587,13 +1591,17 @@ class ajaxMap {
                         behavior: 'smooth'
                     });
                 })
+
                 div.appendChild(button);
+                container.appendChild(div);
             }
 
+            /* Create the template element */
             var template = document.createElement('div');
             template.dataset.ajax = 'template';
             template.dataset.master = `${self.element.id}`;
             template.dataset.layer = layer;
+            template.dataset.layerId = self.overlayMaps[layer]._leaflet_id;
             template.classList.add('show', 'active');
 
             var templates = container.querySelector('#div-templateContent').childNodes;
@@ -1611,6 +1619,7 @@ class ajaxMap {
             document.getElementById(self.element.id).style.height = 'calc(60vh - 56px)';
             document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = '56px';
 
+            /* Create new nav element if it doesn't already exist */
             if (!container.querySelector('nav')) {
                 var nav = document.createElement('nav');
                 nav.style.position = 'absolute';
@@ -1619,14 +1628,18 @@ class ajaxMap {
                 nav.style.bottom = '40vh';
                 nav.style.left = 'auto';
                 nav.style.zIndex = '999';
+
                 var ul = document.createElement('ul');
                 ul.classList.add('nav', 'nav-tabs');
                 ul.id = "nav-tab";
                 ul.setAttribute('role', 'tablist');
+
                 nav.appendChild(ul);
                 container.appendChild(nav);
+
             }
 
+            /* Create new div element if it doesn't already exist */
             if (!container.querySelector('div.tab-content')) {
                 var div = document.createElement('div');
                 div.classList.add('tab-content', 'bg-white');
@@ -1639,6 +1652,7 @@ class ajaxMap {
                 div.style.height = '40vh';
                 div.style.flexGrow = '1';
                 div.style.zIndex = '999';
+
                 container.appendChild(div);
             }
 
@@ -1646,21 +1660,25 @@ class ajaxMap {
             var li = document.createElement('li');
             li.classList.add('nav-item');
             li.setAttribute('role', 'presentation');
+
             var button = document.createElement('button');
             button.classList.add('nav-link', 'link-dark', 'bg-light', 'pull-left', 'active');
             button.id = `nav-${self.overlayMaps[layer]._leaflet_id}-tab`;
             button.dataset.bsToggle = "tab";
             button.dataset.bsTarget = `#nav-${self.overlayMaps[layer]._leaflet_id}`;
+            button.dataset.layer = layer;
+            button.dataset.layerId = self.overlayMaps[layer]._leaflet_id;
             button.type = "button";
             button.setAttribute('role', 'tab');
             button.setAttribute('aria-controls', `nav-${self.overlayMaps[layer]._leaflet_id}`);
             button.setAttribute('aria-selected', 'true');
-            button.style.marginTop = '0.3em';
-            button.style.marginRight = '-0.9em';
             button.innerText = layer;
+
             var close = document.createElement('button');
             close.classList.add('btn-close', 'btn-xxs');
             close.setAttribute('aria-label', 'Close');
+            close.style.marginTop = '0.3em';
+            close.style.marginLeft = '-1.9em';
             close.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1692,6 +1710,7 @@ class ajaxMap {
                     document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = '0';
                 }
             })
+
             li.append(button, close);
 
             var tabs = container.querySelector('nav').firstElementChild.childNodes;
@@ -1704,16 +1723,21 @@ class ajaxMap {
             var div = document.createElement('div');
             div.classList.add('tab-pane', 'fade', 'show', 'active');
             div.id = `nav-${self.overlayMaps[layer]._leaflet_id}`;
+            div.dataset.layer = layer;
+            div.dataset.layerId = self.overlayMaps[layer]._leaflet_id;
             div.setAttribute('role', 'tabpanel');
             div.setAttribute('aria-labelledby', `nav-${self.overlayMaps[layer]._leaflet_id}-tab`);
             div.style.height = "inherit";
+
             var tableContainer = document.createElement('div');
             tableContainer.classList.add('table-scrollable');
             tableContainer.style.margin = "0";
             tableContainer.style.height = "100%";
             tableContainer.style.overflowY = "scroll";
+
             div.appendChild(tableContainer);
 
+            /* Remove all current active tabs */
             var tabpanes = container.querySelector('div.tab-content').childNodes;
             tabpanes.forEach(tabpane => {
                 tabpane.classList.remove('show', 'active');
@@ -1723,6 +1747,8 @@ class ajaxMap {
             // Create new table
             var table = document.createElement('table');
             var caption = document.createElement('caption');
+
+            /* Create the caption element */
             caption.innerText = layer;
             caption.style.marginTop = "0";
             caption.style.marginRight = "0";
@@ -1731,31 +1757,21 @@ class ajaxMap {
             caption.style.fontSize = "2em";
             caption.style.color = "black";
             caption.style.backgroundColor = "transparent";
+
+            /* Create the table element */
             //table.appendChild(caption);
             table.classList.add('ajaxTable', 'table-hover');
             table.dataset.ajax = "table";
             table.dataset.master = self.element.id;
-            table.dataset.layer = layer;
-            table.dataset.layerId = self.overlayMaps[layer]._leaflet_id;
             table.dataset.query = JSON.stringify(self._overlayMaps[layer].layerParams.query);
             table.dataset.columns = self._overlayMaps[layer].layerParams.columns;
-            table.dataset.columnnames = self._overlayMaps[layer].layerParams.columns;
-            table.dataset.limit = 500;
+            table.dataset.columnnames = self._overlayMaps[layer].layerParams?.columnnames || self._overlayMaps[layer].layerParams.columns;
+            table.dataset.limit = self._overlayMaps[layer].layerParams.limit;
             table.dataset.href = false;
             table.dataset.events = "mouseover,mouseout,mousedown,mouseup,click";
-            // table.dataset.columns = "labidnr,longitude,latitude,xy,geom,xco,yco";
-            // table.dataset.columnnames = "labidnr,longitude,latitude,xy,geom,xco,yco";
-            container.querySelector(`#nav-${self.overlayMaps[layer]._leaflet_id}`).firstElementChild.appendChild(table);
 
-            // TODO: parseResponse depends per layer
-            // var tableOptions = {
-            //     parseResponse: self._overlayMaps[layer].parseResponse,
-            //     getUID: self._overlayMaps[layer].getUID,
-            //     getLatLng: self._overlayMaps[layer].getLatLng,
-            //     _tableCallback: {
-            //         functions: {}
-            //     }
-            // }
+            /* Add the table to the navigation container element */
+            container.querySelector(`#nav-${self.overlayMaps[layer]._leaflet_id}`).firstElementChild.appendChild(table);
 
             var element = container.querySelector(`#nav-${self.overlayMaps[layer]._leaflet_id}`).lastElementChild.lastElementChild;
             window["ajaxTables"][layer] = new ajaxTable(element, layer);
@@ -1768,10 +1784,14 @@ class ajaxMap {
                 div.style.position = 'absolute';
                 div.style.top = '0';
                 div.style.left = '100%';
-                div.style.width = '100vw';
+                if (this.onMobile) {
+                    div.style.width = '100vw';
+                } else {
+                    div.style.width = '30vw';
+                }
                 div.style.height = '100vh';
                 div.style.backgroundColor = 'inherit';
-                container.appendChild(div);
+
                 var button = document.createElement('button');
                 button.type = 'button';
                 button.classList.add('btn-close', 'mt-3', 'pull-left');
@@ -1779,13 +1799,17 @@ class ajaxMap {
                 button.addEventListener("click", function () {
                     document.querySelector(`[id='${self.element.id}']`).scrollIntoView();
                 })
+
                 div.appendChild(button);
+                container.appendChild(div);
+
             }
 
             var template = document.createElement('div');
             template.dataset.ajax = 'template';
             template.dataset.master = `${self.element.id}`;
             template.dataset.layer = layer;
+            template.dataset.layerId = self.overlayMaps[layer]._leaflet_id;
             template.classList.add('show', 'active');
 
             var templates = container.querySelector('#div-templateContent').childNodes;

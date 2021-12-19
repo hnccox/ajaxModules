@@ -8,6 +8,13 @@ class ajaxTemplate {
 	constructor(element, index, templateOptions = {}) {
 		console.log("ajaxTemplate constructor");
 
+		this.colors = {};
+		this.colors.consoleLog = '#FFFFFF';
+		this.colors.consoleInfo = '#28a745';
+        this.colors.consoleWarn = '#FFFF00';
+        this.colors.consoleError = '#FF0000';
+		this.colors.consoleSuccess = '#28a745';
+
 		while (element.firstChild) {
 			element.removeChild(element.firstChild);
 		}
@@ -44,31 +51,17 @@ class ajaxTemplate {
 		return JSON.parse(this.data);
 	}
 
-	eventTransmitter(e, i) {
-		console.info(`%c${this.element.id} eventTransmitter`, "color: #28a745");
-		if(!e.origin) { e.origin = this.element.id }
-		/*
-		console.log("TEMPLATE eventTransmitter");
-		console.log(e.type);
-		console.log(i);
-		*/
-		/*
-		let slaveTemplates = document.querySelectorAll('[data-ajax="template"][data-master="' + this.element.id + '"]');
-		slaveTemplates.forEach((template) => {
-			ajaxTemplates[template.dataset.key].eventReceiver(e, i);
-		});
-		*/
-	}
-
 	eventReceiver(e, i) {
-		console.info(`%c${this.element.id} eventReceiver`, "color: #28a745");
-		// console.log(e);
-		// console.log(i);
+		console.info(`%c${this.element.id} eventReceiver: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
+        // console.log(e);
+        // console.log(i);
 
 		if (this.selectedDetail == i) {
 			this.eventTransmitter(e, i);
 			return;
 		}
+
+		let self = this;
 
 		const mouseover = () => {
 			//console.log(i);
@@ -88,8 +81,6 @@ class ajaxTemplate {
 
 		const click = () => {
 			//console.log(i);
-			this.selectedDetail = i;
-
 			//element.dataset.columns = this.dataset.columns;
 			//element.dataset.order_by = this.dataset.order_by;
 			//this.element.dataset.where = this.dataset.where;
@@ -112,8 +103,10 @@ class ajaxTemplate {
 				ajax(table, ajaxTables[table.dataset.index].tableTabulate.bind(ajaxTables[table.dataset.index]);
 			});
 			*/
+			this.selectedDetail = i;
 			this.eventTransmitter(e, i);
 		}
+
 
 		switch (e.type) {
 			case "mouseover":
@@ -136,8 +129,21 @@ class ajaxTemplate {
 		}
 	}
 
+	eventTransmitter(e, i) {
+		console.info(`%c${this.element.id} eventTransmitter: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
+		if(!e.origin) { e.origin = this.element.id }
+		
+		/*
+		let slaveTemplates = document.querySelectorAll('[data-ajax="template"][data-master="' + this.element.id + '"]');
+		slaveTemplates.forEach((template) => {
+			if (template.id === e.origin) { return; }
+			ajaxTemplates[template.dataset.key].eventReceiver(e, i);
+		});
+		*/
+	}
+
 	templateCreate() {
-		console.info("%ctemplateCreate", "color: #28a745");
+		console.info(`%ctemplateCreate`, `color:${this.colors.consoleInfo}`);
 
 		let self = this;
 		let template = this.element;
@@ -162,7 +168,7 @@ class ajaxTemplate {
 	}
 
 	templateCallback() {
-		console.log("templateCallback");
+		console.info(`%ctemplateCallback`, `color:${this.colors.consoleInfo}`);
 
 		let dataset = this.obj.dataset;
 
@@ -192,6 +198,7 @@ class ajaxTemplate {
 	}
 
 	templateTabulate(response) {
+		console.info(`%ctemplateTabulate`, `color:${this.colors.consoleWarn}`);
 		if (response.type !== "success") return response;
 
 		console.log("templateTabulate");
