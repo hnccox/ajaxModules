@@ -29,12 +29,12 @@ class ajaxMap {
     constructor(element, index, mapOptions = {}) {
         console.log("ajaxMap constructor");
 
-		this.colors = {};
-		this.colors.consoleLog = '#FFFFFF';
-		this.colors.consoleInfo = '#28a745';
+        this.colors = {};
+        this.colors.consoleLog = '#FFFFFF';
+        this.colors.consoleInfo = '#28a745';
         this.colors.consoleWarn = '#FFFF00';
         this.colors.consoleError = '#FF0000';
-		this.colors.consoleSuccess = '#28a745';
+        this.colors.consoleSuccess = '#28a745';
 
         while (element.firstChild) {
             element.removeChild(element.firstChild);
@@ -874,7 +874,7 @@ class ajaxMap {
                             }
                             document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.removeChild(tableTab);
                             document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').removeChild(tablePane);
-                            delete window["ajaxTables"][tablePane.querySelector('table').dataset.index];
+                            delete window["ajaxTables"][tablePane.querySelector('table').dataset.key];
                         }
                     }
                     var x = tableTabs.length;
@@ -1240,25 +1240,17 @@ class ajaxMap {
         return JSON.stringify(this._overlayMaps[layer].dataset);
     }
 
-    eventReceiver(e, i) {
+    eventReceiver(e, i, origin) {
         console.info(`%c${this.element.id} eventReceiver: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
-        // console.log(e);
-        // console.log(i);
-
-        /* 
-            If event comes from parent -> send to children
-            If event comes from child -> send to parent and (children - child)
-        */
 
         if (this.selectedMarkers[i]) {
-            this.eventTransmitter(e, i);
+            this.eventTransmitter(e, i, origin);
             return;
-        } else {
-            var layer = document.querySelector(`[id='${e.origin}']`).dataset.index;
-            var marker = this._overlayGroups[layer].markers[i];
         }
 
         let self = this;
+        var layer = document.querySelector(`[id='${origin}']`).dataset.key;
+        var marker = this._overlayGroups[layer].markers[i];
 
         const mouseover = () => {
             marker.setIcon(marker.properties.highlightIcon);
@@ -1281,76 +1273,101 @@ class ajaxMap {
             }
             marker.setIcon(marker.properties.selectedIcon);
             this.selectedMarkers[i] = marker;
-            this.eventTransmitter(e, i);
+            this.eventTransmitter(e, i, origin);
         }
 
         switch (e.type) {
-            case "mouseover":
-                mouseover();
-                break;
-            case "mouseout":
-                mouseout();
-                break;
-            case "mousedown":
-                mousedown();
-                break;
-            case "mouseup":
-                mouseup();
-                break;
             case "click":
+                // The event occurs when the user clicks on an element
                 click();
                 break;
+            // case "contextmenu":
+            //     // The event occurs when the user right-clicks on an element to open a context menu
+            //     contextmenu();
+            //     break;
+            // case "dblclick":
+            //     // The event occurs when the user double-clicks on an element
+            //     dblclick();
+            //     break;
+            // case "mousedown":
+            //     // The event occurs when the user presses a mouse button over an element
+            //     mousedown();
+            //     break;
+            // case "mouseenter":
+            //     // The event occurs when the pointer is moved onto an element
+            //     mouseenter();
+            //     break;
+            // case "mouseleave":
+            //     // The event occurs when the pointer is moved out of an element
+            //     mouseleave();
+            //     break;
+            // case "mousemove":
+            //     // The event occurs when the pointer is moving while it is over an element
+            //     mousemove();
+            //     break;
+            case "mouseout":
+                // The event occurs when the pointer is moved out of an element, or out of one of its children
+                mouseout();
+                break;
+            case "mouseover":
+                // The event occurs when the pointer is moved onto an element, or onto one of its children
+                mouseover();
+                break;
+            // case "mouseup":
+            //     // The event occurs when a user releases a mouse button over an element
+            //     mouseup();
+            //     break;
             default:
                 break;
         }
 
     }
 
-    eventTransmitter(e, i) {
+    eventTransmitter(e, i, origin = this.element.id) {
         console.info(`%c${this.element.id} eventTransmitter: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
-        if (!e.origin) { e.origin = this.element.id }
 
-        // if (e.type == 'click'
-        //     && this.selectedMarkers[i]
-        //     && this.element.parentElement.classList.contains('fullscreen')
-        //     && document.querySelector('#div-templateContent')) {
-        //     // TODO: Scroll templateContainer in view and show current layer
-        //     document.querySelector(`[data-ajax='template'][data-master='${this.element.id}'][data-layer='${this.selectedMarkers[i].properties.layer}']`).scrollIntoView();
-        //     this.eventTransmitter(e, i);
-        //     return;
-        // }
-
-        // TODO: Check if fullscreen and event is click and #div-templateContent and mobile or desktop
-        if (e.type == 'click' && this.element.parentElement.classList.contains('fullscreen') && document.querySelector('#div-templateContent')) {
-            // Correct template comes into view ('show', 'active')
-            if (!document.querySelector('#div-templateContent').querySelector('iframe')) {
-                var iframe = document.createElement('iframe');
-                iframe.width = "100%";
-                iframe.height = "96%";
-                iframe.id = `${e.origin}-${i}`;
-                iframe.src = "https://data-dev.neotomadb.org/" + i;
-                iframe.style.position = 'absolute';
-                iframe.style.top = '4%';
-                iframe.style.left = '0';
-                document.querySelector('#div-templateContent').appendChild(iframe);
-            } else {
-                document.querySelector('#div-templateContent').querySelector('iframe').src = "https://data-dev.neotomadb.org/" + i;
+        /* 
+            If event comes from parent -> send to children
+            If event comes from child -> send to parent and (children - child)
+        */
+        
+        if (this.element.dataset.master && origin !== this.element.dataset.master) {
+            let parent = document.querySelector(`[id='${this.element.dataset.master}']`);
+            console.log(`${this.element.id} -> ${parent.id}`);
+            switch (parent?.dataset?.ajax) {
+                case "map":
+                    window["ajaxMaps"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+                    break;
+                case "table":
+                    window["ajaxTables"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+                    break;
+                case "template":
+                    window["ajaxTemplates"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+                    break;
+                default:
+                    break;
             }
-
         }
 
-        // let slaveTemplates = document.querySelectorAll('[data-ajax="template"][data-master="' + this.element.id + '"]');
-        let slaveTemplates = document.querySelectorAll(`[data-ajax='template'][data-master='${this.element.id}']`);
-        slaveTemplates.forEach((template) => {
-            if (template.id === e.origin) { return; }
-            window["ajaxTemplates"][template.dataset.key].eventReceiver(e, i);
+        let childMaps = document.querySelectorAll(`[data-ajax='map'][data-master='${this.element.id}']`);
+		childMaps.forEach((map) => {
+			if (map.id === origin) { return; }
+			console.log(`${this.element.id} -> ${map.id}`);
+			window["ajaxMaps"][map.dataset.key].eventReceiver(e, i, this.element.id);
+		});
+        
+        let childTables = document.querySelectorAll(`[data-ajax='table'][data-master='${this.element.id}']`);
+        childTables.forEach((table) => {
+            if (table.id === origin) { return; }
+            console.log(`${this.element.id} -> ${table.id}`);
+            window["ajaxTables"][table.dataset.key].eventReceiver(e, i, this.element.id);
         });
 
-        // let slaveTables = document.querySelectorAll('[data-ajax="table"][data-master="' + this.element.id + '"]');
-        let slaveTables = document.querySelectorAll(`[data-ajax='table'][data-master='${this.element.id}']`);
-        slaveTables.forEach((table) => {
-            if (table.id === e.origin) { return; }
-            window["ajaxTables"][table.dataset.index].eventReceiver(e, i);
+        let childTemplates = document.querySelectorAll(`[data-ajax='template'][data-master='${this.element.id}']`);
+        childTemplates.forEach((template) => {
+            if (template.id === origin) { return; }
+            console.log(`${this.element.id} -> ${template.id}`);
+            window["ajaxTemplates"][template.dataset.key].eventReceiver(e, i, this.element.id);
         });
 
     }
@@ -1368,7 +1385,7 @@ class ajaxMap {
         //     if (this.map.getZoom() >= parseInt(this.element.dataset.zoomlevel, 10) /*|| self.getData().totalrecords <= self.getDataset().limit */) {
         //         table.previousElementSibling.style.display = "none";
         //         table.style.display = "table";
-        //         window["ajaxTables"][parseInt(table.dataset.index, 10)].tableTabulate(this.data);
+        //         window["ajaxTables"][parseInt(table.dataset.key, 10)].tableTabulate(this.data);
         //     } else {
         //         table.previousElementSibling.style.display = "block";
         //         table.style.display = "none";
@@ -1518,9 +1535,9 @@ class ajaxMap {
                 storageHandler.storage.session.set(layer, 'cached');
             }
 
-            if (document.querySelector(`[data-ajax='table'][data-master='${self.element.id}'][data-index='${layer}']`)) {
-                let table = document.querySelector(`[data-ajax='table'][data-master='${self.element.id}'][data-index='${layer}']`);
-                window["ajaxTables"][table.dataset.index].tableTabulate(obj);
+            if (document.querySelector(`[data-ajax='table'][data-master='${self.element.id}'][data-key='${layer}']`)) {
+                let table = document.querySelector(`[data-ajax='table'][data-master='${self.element.id}'][data-key='${layer}']`);
+                window["ajaxTables"][table.dataset.key].tableTabulate(obj);
             }
 
             self._overlayMaps[layer].dataset = obj;
@@ -1697,7 +1714,7 @@ class ajaxMap {
                         }
                         document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.removeChild(tableTab);
                         document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').removeChild(tablePane);
-                        delete window["ajaxTables"][tablePane.querySelector('table').dataset.index];
+                        delete window["ajaxTables"][tablePane.querySelector('table').dataset.key];
                     }
                 }
                 var x = tableTabs.length;

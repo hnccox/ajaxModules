@@ -16,8 +16,8 @@ class ajaxForm {
         console.log("ajaxForm constructor");
 
         while (element.firstChild) {
-			element.removeChild(element.firstChild);
-		}
+            element.removeChild(element.firstChild);
+        }
 
         for (const [key, value] of Object.entries(formOptions)) {
             this[key] = value;
@@ -26,7 +26,7 @@ class ajaxForm {
         //this.callbacks = callbacks;
         this.element = element;
         this.index = index;
-        
+
         // this.dataset = {};
         // this.dataset.db = element.dataset.db;
         // this.dataset.table = element.dataset.table;
@@ -74,24 +74,10 @@ class ajaxForm {
         return this.element.dataset;
     }
 
-    eventTransmitter(e, i) {
-        /*
-        console.log("TEMPLATE eventTransmitter");
-        console.log(e.type);
-        console.log(i);
-        */
-        /*
-        let slaveTemplates = document.querySelectorAll('[data-ajax="template"][data-master="' + this.element.id + '"]');
-        slaveTemplates.forEach((template) => {
-            Templates[template.dataset.key].eventReceiver(e, i);
-        });
-        */
-    }
+    eventReceiver(e, i, origin) {
+        console.info(`%c${this.element.id} eventReceiver: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
 
-    eventReceiver(e, i) {
-        console.log("eventReceiver");
-
-        if (this.selectedDetail == i) {
+        if (this.selectedForm == i) {
             return;
         }
 
@@ -113,23 +99,7 @@ class ajaxForm {
 
         const click = () => {
             //console.log(i);
-            this.selectedDetail = i;
-
-            //element.dataset.columns = this.dataset.columns;
-            //element.dataset.order_by = this.dataset.order_by;
-            this.element.dataset.where = this.dataset.where;
-            //element.dataset.columns = element.dataset.columns.replace(":lat", lat).replace(":lng", lng);
-            //element.dataset.order_by = element.dataset.order_by.replace(":lat", lat).replace(":lng", lng);
-            this.element.dataset.where = this.element.dataset.where.replace(":uid", i);
-
-            //ajax(this.element, "GET", this.formTabulate.bind(this));
-            /*
-            let slaveTables = document.querySelectorAll('[data-ajax="table"][data-master="' + this.element.id + '"]');
-            slaveTables.forEach((table) => {
-                ajax(table, Tables[table.dataset.index].tableTabulate.bind(Tables[table.dataset.index]);
-            });
-            */
-            //this.eventTransmitter(e, i);
+            this.eventTransmitter(e, i, origin);
         }
 
         switch (e.type) {
@@ -151,6 +121,16 @@ class ajaxForm {
             default:
                 break;
         }
+    }
+
+    eventTransmitter(e, i, origin = this.element.id) {
+        console.info(`%c${this.element.id} eventTransmitter: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
+
+        /* 
+            If event comes from parent -> send to children
+            If event comes from child -> send to parent and (children - child)
+        */
+
     }
 
     formCallback() {
@@ -191,7 +171,7 @@ class ajaxForm {
             var elements = document.querySelectorAll(`[data-variable=${key}]`);
             for (let element of elements) {
                 if (element instanceof HTMLInputElement) {
-                    if(element.type === 'checkbox' && obj[0][key]) {
+                    if (element.type === 'checkbox' && obj[0][key]) {
                         element.checked = true;
                     }
                     element.value = obj[0][key];

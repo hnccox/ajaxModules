@@ -10,8 +10,8 @@ class ajaxTable {
 		this.colors = {};
 		this.colors.consoleLog = '#FFFFFF';
 		this.colors.consoleInfo = '#28a745';
-        this.colors.consoleWarn = '#FFFF00';
-        this.colors.consoleError = '#FF0000';
+		this.colors.consoleWarn = '#FFFF00';
+		this.colors.consoleError = '#FF0000';
 		this.colors.consoleSuccess = '#28a745';
 
 		while (element.firstChild) {
@@ -27,9 +27,9 @@ class ajaxTable {
 		this.rows = {};
 		this.selectedRows = {};
 		//this.query = JSON.parse(element.dataset.query);
-		
-		element.dataset.index = index;
-		element.setAttribute("id", "ajaxTables[" + index + "]");
+
+		element.dataset.key = index;
+		element.setAttribute("id", `ajaxTables[${index}]`);
 
 		// TODO: If table is slave, don't do ajax requests...
 		// If we change the sort, use the sort of the master...
@@ -52,17 +52,16 @@ class ajaxTable {
 		return JSON.parse(this.data);
 	}
 
-	eventReceiver(e, i) {
+	eventReceiver(e, i, origin) {
 		console.info(`%c${this.element.id} eventReceiver: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
 
 		if (!this.element.querySelector('tr[data-id="' + i + '"]') || this.selectedRows[i]) {
-			this.eventTransmitter(e, i);
+			this.eventTransmitter(e, i, origin);
 			return;
-		} else {
-			var row = this.element.querySelector('tr[data-id="' + i + '"]');
 		}
 
 		let self = this;
+		var row = this.element.querySelector('tr[data-id="' + i + '"]');
 
 		const mouseover = () => {
 			//console.log(i);
@@ -96,7 +95,7 @@ class ajaxTable {
 			row.style.backgroundColor = "rgb(255, 205, 0)";
 			row.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
 			this.selectedRows[i] = row;
-			this.eventTransmitter(e, i);
+			this.eventTransmitter(e, i, origin);
 		}
 
 		switch (e.type) {
@@ -121,26 +120,58 @@ class ajaxTable {
 
 	}
 
-	eventTransmitter(e, i) {
+	eventTransmitter(e, i, origin = this.element.id) {
 		console.info(`%c${this.element.id} eventTransmitter: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
-		if(!e.origin) { e.origin = this.element.id }
 
-		let masterMaps = document.querySelectorAll(`[id='${this.element.dataset.master}']`);
-		masterMaps.forEach((map) => {
-			if(map.id === e.origin) { return; }
-			window["ajaxMaps"][map.dataset.key].eventReceiver(e, i);
-		})
+		/* 
+			If event comes from parent -> send to children
+			If event comes from child -> send to parent and (children - child)
+		*/
 
-		// TODO: slave table
-		// if (document.getElementById(this.element.dataset.master)) {
-		// 	var key = document.getElementById(this.element.dataset.master).dataset.key;
-		// 	window["ajaxMaps"][0].eventReceiver(e, i);
-		// }
+		if (this.element.dataset.master && origin !== this.element.dataset.master) {
+			let parent = document.querySelector(`[id='${this.element.dataset.master}']`);
+			console.log(`${this.element.id} -> ${parent.id}`);
+			switch(parent.dataset.ajax) {
+				case "map":
+					window["ajaxMaps"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+					break;
+				case "table":
+					window["ajaxTables"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+					break;
+				case "template":
+					window["ajaxTemplates"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+					break;
+				default:
+					break;
+			}
+		}
+
+		let childMaps = document.querySelectorAll(`[data-ajax='map'][data-master='${this.element.id}']`);
+		childMaps.forEach((map) => {
+			if (map.id === origin) { return; }
+			console.log(`${this.element.id} -> ${map.id}`);
+			window["ajaxMaps"][map.dataset.key].eventReceiver(e, i, this.element.id);
+		});
+
+		let childTables = document.querySelectorAll(`[data-ajax='table'][data-master='${this.element.id}']`);
+		childTables.forEach((table) => {
+			if (table.id === origin) { return; }
+			console.log(`${this.element.id} -> ${table.id}`);
+			window["ajaxTables"][table.dataset.key].eventReceiver(e, i, this.element.id);
+		});
+
+		let childTemplates = document.querySelectorAll(`[data-ajax='template'][data-master='${this.element.id}']`);
+		childTemplates.forEach((template) => {
+			if (template.id === origin) { return; }
+			console.log(`${this.element.id} -> ${template.id}`);
+			window["ajaxTemplates"][template.dataset.key].eventReceiver(e, i, this.element.id);
+		});
+
 	}
 
 	tableCreate() {
 		console.info("%ctableCreate", "color: #28a745");
-		
+
 		let self = this;
 		let table = this.element;
 
@@ -406,7 +437,7 @@ class ajaxTable {
 		}
 
 	}
-		
+
 	tableCallback(element) {
 		console.info(`%ctableCallback`, `color:${this.colors.consoleWarn}`);
 		if (this?._tableCallback?.functions) {
@@ -415,18 +446,17 @@ class ajaxTable {
 				callbacks[value](element);
 			})
 		}
-
 	}
 
 	tableTabulate(response) {
 		console.info(`%ctableTabulate`, `color:${this.colors.consoleInfo}`);
-		if(response.type !== "success") return response;
+		if (response.type !== "success") return response;
 		// window.history.pushState({page: this.element.dataset.offset + 1}, "", "?page="+(parseInt(this.element.dataset.offset, 10) + 1));
 
 		let self = this;
 		let table = this.element;
 		let tfoot = table.getElementsByClassName("table-footer")[0];
-		
+
 		const obj = this?.parseResponse?.(response) || response;
 		const data = obj.data;
 		const dataset = obj.dataset;
@@ -474,6 +504,7 @@ class ajaxTable {
 			}
 
 			// TODO: If slave table, do not redirect to another page...
+			// FIXME: Do we need to evaluate the event array for each row? No!
 			table.dataset.events.split(",").forEach((value) => {
 				switch (value) {
 					case "mouseover":
@@ -666,7 +697,7 @@ class ajaxTable {
 				"query": JSON.parse(table.dataset.query)
 			}
 			Object.keys(sql.query).forEach((key) => {
-				switch(Object.keys(sql.query[key])[0]) {
+				switch (Object.keys(sql.query[key])[0]) {
 					case "limit":
 						sql.query[key].limit = parseInt(table.dataset.limit, 10);
 						break;
@@ -714,7 +745,7 @@ class ajaxTable {
 				"query": JSON.parse(table.dataset.query)
 			}
 			Object.keys(sql.query).forEach((key) => {
-				switch(Object.keys(sql.query[key])[0]) {
+				switch (Object.keys(sql.query[key])[0]) {
 					case "offset":
 						sql.query[key].offset = parseInt(table.dataset.offset, 10) * parseInt(table.dataset.limit, 10);
 						break;
@@ -766,7 +797,7 @@ class ajaxTable {
 				"query": JSON.parse(table.dataset.query)
 			}
 			Object.keys(sql.query).forEach((key) => {
-				switch(Object.keys(sql.query[key])[0]) {
+				switch (Object.keys(sql.query[key])[0]) {
 					case "order_by":
 						sql.query[key].order_by[0].identifier = table.dataset.order_by;
 						sql.query[key].order_by[0].direction = table.dataset.direction;

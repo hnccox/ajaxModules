@@ -11,8 +11,8 @@ class ajaxTemplate {
 		this.colors = {};
 		this.colors.consoleLog = '#FFFFFF';
 		this.colors.consoleInfo = '#28a745';
-        this.colors.consoleWarn = '#FFFF00';
-        this.colors.consoleError = '#FF0000';
+		this.colors.consoleWarn = '#FFFF00';
+		this.colors.consoleError = '#FF0000';
 		this.colors.consoleSuccess = '#28a745';
 
 		while (element.firstChild) {
@@ -33,7 +33,7 @@ class ajaxTemplate {
 		// this.dataset.where = element.dataset.where;
 
 		element.dataset.key = index;
-		element.setAttribute("id", "ajaxTemplates[" + index + "]");
+		element.setAttribute("id", `ajaxTemplates[${index}]`);
 
 		this.templateCreate();
 
@@ -51,13 +51,11 @@ class ajaxTemplate {
 		return JSON.parse(this.data);
 	}
 
-	eventReceiver(e, i) {
+	eventReceiver(e, i, origin) {
 		console.info(`%c${this.element.id} eventReceiver: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
-        // console.log(e);
-        // console.log(i);
 
 		if (this.selectedDetail == i) {
-			this.eventTransmitter(e, i);
+			this.eventTransmitter(e, i, origin);
 			return;
 		}
 
@@ -100,11 +98,11 @@ class ajaxTemplate {
 			/*
 			let slaveTables = document.querySelectorAll('[data-ajax="table"][data-master="' + this.element.id + '"]');
 			slaveTables.forEach((table) => {
-				ajax(table, ajaxTables[table.dataset.index].tableTabulate.bind(ajaxTables[table.dataset.index]);
+				ajax(table, ajaxTables[table.dataset.key].tableTabulate.bind(ajaxTables[table.dataset.key]);
 			});
 			*/
 			this.selectedDetail = i;
-			this.eventTransmitter(e, i);
+			this.eventTransmitter(e, i, origin);
 		}
 
 
@@ -129,17 +127,53 @@ class ajaxTemplate {
 		}
 	}
 
-	eventTransmitter(e, i) {
+	eventTransmitter(e, i, origin = this.element.id) {
 		console.info(`%c${this.element.id} eventTransmitter: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
-		if(!e.origin) { e.origin = this.element.id }
-		
-		/*
-		let slaveTemplates = document.querySelectorAll('[data-ajax="template"][data-master="' + this.element.id + '"]');
-		slaveTemplates.forEach((template) => {
-			if (template.id === e.origin) { return; }
-			ajaxTemplates[template.dataset.key].eventReceiver(e, i);
-		});
+
+		/* 
+			If event comes from parent -> send to children
+			If event comes from child -> send to parent and (children - child)
 		*/
+	
+		if (this.element.dataset.master && origin !== this.element.dataset.master) {
+			let parent = document.querySelector(`[id='${this.element.dataset.master}']`);
+			console.log(`${this.element.id} -> ${parent.id}`);
+			switch(parent?.dataset?.ajax) {
+				case "map":
+					window["ajaxMaps"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+					break;
+				case "table":
+					window["ajaxTables"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+					break;
+				case "template":
+					window["ajaxTemplates"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+					break;
+				default:
+					break;
+			}
+		}
+
+		let childMaps = document.querySelectorAll(`[data-ajax='map'][data-master='${this.element.id}']`);
+		childMaps.forEach((map) => {
+			if (map.id === origin) { return; }
+			console.log(`${this.element.id} -> ${map.id}`);
+			window["ajaxMaps"][map.dataset.key].eventReceiver(e, i, this.element.id);
+		});
+		
+        let childTables = document.querySelectorAll(`[data-ajax='table'][data-master='${this.element.id}']`);
+        childTables.forEach((table) => {
+            if (table.id === origin) { return; }
+			console.log(`${this.element.id} -> ${table.id}`);
+            window["ajaxTables"][table.dataset.key].eventReceiver(e, i, this.element.id);
+        });
+
+        let childTemplates = document.querySelectorAll(`[data-ajax='template'][data-master='${this.element.id}']`);
+        childTemplates.forEach((template) => {
+            if (template.id === origin) { return; }
+			console.log(`${this.element.id} -> ${template.id}`);
+            window["ajaxTemplates"][template.dataset.key].eventReceiver(e, i, this.element.id);
+        });
+
 	}
 
 	templateCreate() {
@@ -168,31 +202,11 @@ class ajaxTemplate {
 	}
 
 	templateCallback() {
-		console.info(`%ctemplateCallback`, `color:${this.colors.consoleInfo}`);
-
-		let dataset = this.obj.dataset;
-
-		// TO DO: send "update" event to Receivers
-		//console.log(this.element.id);
-		this.element.classList.add("show");
-		this.element.style.display = "block";
-
-		let slaveTables = document.querySelectorAll('[data-ajax="table"][data-master="' + this.element.id + '"]');
-		slaveTables.forEach((table) => {
-			table.dataset.where = this.element.dataset.where;
-			let method = "GET";
-			let sql = {
-				"url": table.dataset.url,
-				"db": table.dataset.db,
-				"query": JSON.parse(table.dataset.query)
-			};
-			ajax(method, sql, ajaxTables[table.dataset.index].tableTabulate.bind(ajaxTables[table.dataset.index]));
-		});
-
+		console.info(`%ctemplateCallback`, `color:${this.colors.consoleWarn}`);
 		if (this?._templateCallback?.functions) {
 			let callbacks = this._templateCallback.functions;
 			Object.keys(callbacks).forEach(function (value) {
-				callbacks[value](dataset);
+				callbacks[value](element);
 			})
 		}
 	}
@@ -206,7 +220,7 @@ class ajaxTemplate {
 
 		let self = this;
 		let template = this.element;
-		
+
 		const obj = this.parseResponse?.(response) || response;
 		const data = obj.data;
 		const dataset = obj.dataset;
@@ -225,12 +239,12 @@ class ajaxTemplate {
 
 		// TODO: This isnt just for drilldate! Data can be in sub arrays!
 		// function isJSON(str) {
-        //     try {
-        //         return (JSON.parse(str) && !!str);
-        //     } catch (e) {
-        //         return false;
-        //     }
-        // }
+		//     try {
+		//         return (JSON.parse(str) && !!str);
+		//     } catch (e) {
+		//         return false;
+		//     }
+		// }
 		Object.keys(dataset).forEach(function (key) {
 			// Is our value a string or an object/array?
 			var NodeList = self.element.querySelectorAll('[data-variable="' + key + '"]');
