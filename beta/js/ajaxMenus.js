@@ -8,16 +8,27 @@ class ajaxMenu {
     constructor(element, index, object = {}) {
         console.log("ajaxMenu constructor");
 
+        element.dataset.key = index;
+        element.setAttribute("id", "ajaxMenus[" + index + "]");
+
+        while (element.firstChild) {
+			element.removeChild(element.firstChild);
+		}
+
         for (const [key, value] of Object.entries(object)) {
             this[key] = value;
         }
 
-        this.element = element;
         this.index = index;
+        this.element = element;
 
-        element.dataset.key = index;
-        element.setAttribute("id", "ajaxMenus[" + index + "]");
-
+        this.colors = {};
+		this.colors.consoleLog = '#FFFFFF';
+		this.colors.consoleInfo = '#28a745';
+		this.colors.consoleWarn = '#FFFF00';
+		this.colors.consoleError = '#FF0000';
+		this.colors.consoleSuccess = '#28a745';
+        
         let method = "GET";
         let sql = {
             "url": element.dataset.url,

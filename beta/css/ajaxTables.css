@@ -64,10 +64,12 @@ table[data-ajax] thead tr th[data-column] {
 	min-width: 60px;
 	vertical-align: top;
 }
+
 table[data-ajax] thead tr th[data-column]:nth-child(1) {
 	/*Width of the collapse-expand button at bottom of the column*/
 	min-width: 8em;
 }
+
 table[data-ajax] thead tr th[data-column]:nth-child(2) {
 	/*With of the Total records display at bottom of the column*/
 	min-width: 10em;
@@ -98,12 +100,14 @@ table[data-ajax] tbody tr[data-id].highlight {
 table[data-ajax] tbody tr {
 	cursor: pointer;
 }
+
 table[data-ajax] tbody tr td {
 	max-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
+
 *:focus:not(:focus-visible) {
 	outline: 0 !important;
 	box-shadow: none !important;
@@ -136,7 +140,6 @@ table[data-ajax] tbody tr td {
 }
 
 /* Tab container */
-
 ul#nav-tab li.nav-item button.btn-close {
 	visibility: hidden;
 }

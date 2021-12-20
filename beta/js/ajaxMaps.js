@@ -29,12 +29,8 @@ class ajaxMap {
     constructor(element, index, mapOptions = {}) {
         console.log("ajaxMap constructor");
 
-        this.colors = {};
-        this.colors.consoleLog = '#FFFFFF';
-        this.colors.consoleInfo = '#28a745';
-        this.colors.consoleWarn = '#FFFF00';
-        this.colors.consoleError = '#FF0000';
-        this.colors.consoleSuccess = '#28a745';
+        element.dataset.key = index;
+        element.setAttribute("id", `ajaxMaps[${index}]`);
 
         while (element.firstChild) {
             element.removeChild(element.firstChild);
@@ -44,16 +40,19 @@ class ajaxMap {
             this[key] = value;
         }
 
-        //this.callbacks = callbacks;
-        this.element = element;
         this.index = index;
+        this.element = element;
         this.dataset = {};
         this.dataset.columns = element.dataset.columns;
         this.dataset.order_by = element.dataset.order_by;
         this.dataset.where = element.dataset.where;
 
-        element.dataset.key = index;
-        element.setAttribute("id", `ajaxMaps[${index}]`);
+        this.colors = {};
+        this.colors.consoleLog = '#FFFFFF';
+        this.colors.consoleInfo = '#28a745';
+        this.colors.consoleWarn = '#FFFF00';
+        this.colors.consoleError = '#FF0000';
+        this.colors.consoleSuccess = '#28a745';
 
         (window.getComputedStyle(document.querySelector('.d-none.d-md-block')).display == 'none') ? this.onMobile = true : this.onMobile = false;
 
@@ -1355,7 +1354,7 @@ class ajaxMap {
 			console.log(`${this.element.id} -> ${map.id}`);
 			window["ajaxMaps"][map.dataset.key].eventReceiver(e, i, this.element.id);
 		});
-        
+
         let childTables = document.querySelectorAll(`[data-ajax='table'][data-master='${this.element.id}']`);
         childTables.forEach((table) => {
             if (table.id === origin) { return; }

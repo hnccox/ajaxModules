@@ -2,18 +2,15 @@
 'use strict';
 
 import { default as ajax } from "/e107_plugins/ajaxDBQuery/beta/js/ajaxDBQuery.js";
+import { default as storageHandler } from "/e107_plugins/storageHandler/js/storageHandler.js";
 import { default as jsonSQL } from "/e107_plugins/jsonSQL/js/jsonSQL.js";
 
 class ajaxTemplate {
 	constructor(element, index, templateOptions = {}) {
 		console.log("ajaxTemplate constructor");
 
-		this.colors = {};
-		this.colors.consoleLog = '#FFFFFF';
-		this.colors.consoleInfo = '#28a745';
-		this.colors.consoleWarn = '#FFFF00';
-		this.colors.consoleError = '#FF0000';
-		this.colors.consoleSuccess = '#28a745';
+		element.dataset.key = index;
+		element.setAttribute("id", `ajaxTemplates[${index}]`);
 
 		while (element.firstChild) {
 			element.removeChild(element.firstChild);
@@ -23,17 +20,15 @@ class ajaxTemplate {
 			this[key] = value;
 		}
 
-		//this.callbacks = callbacks;
-		this.element = element;
 		this.index = index;
-
-		// this.dataset = {};
-		// this.dataset.columns = element.dataset.columns;
-		// this.dataset.order_by = element.dataset.order_by;
-		// this.dataset.where = element.dataset.where;
-
-		element.dataset.key = index;
-		element.setAttribute("id", `ajaxTemplates[${index}]`);
+		this.element = element;
+		
+		this.colors = {};
+		this.colors.consoleLog = '#FFFFFF';
+		this.colors.consoleInfo = '#28a745';
+		this.colors.consoleWarn = '#FFFF00';
+		this.colors.consoleError = '#FF0000';
+		this.colors.consoleSuccess = '#28a745';
 
 		this.templateCreate();
 
@@ -79,32 +74,9 @@ class ajaxTemplate {
 
 		const click = () => {
 			//console.log(i);
-			//element.dataset.columns = this.dataset.columns;
-			//element.dataset.order_by = this.dataset.order_by;
-			//this.element.dataset.where = this.dataset.where;
-			//element.dataset.columns = element.dataset.columns.replace(":lat", lat).replace(":lng", lng);
-			//element.dataset.order_by = element.dataset.order_by.replace(":lat", lat).replace(":lng", lng);
-			//this.element.dataset.where = this.element.dataset.where.replace(":uid", i);
-
-			// let query = null; //JSON.parse(this.element.dataset.query) || null;
-			// let method = "GET";
-			// let sql = {
-			// 	"url": template.dataset.url,
-			// 	"db": template.dataset.db,
-			// 	"query": JSON.parse(template.dataset.query)
-			// }
-			// sql = jsonSQL.query.replace(sql, [":uid"], [i]);
-			// ajax(method, sql, this.templateTabulate.bind(this));
-			/*
-			let slaveTables = document.querySelectorAll('[data-ajax="table"][data-master="' + this.element.id + '"]');
-			slaveTables.forEach((table) => {
-				ajax(table, ajaxTables[table.dataset.key].tableTabulate.bind(ajaxTables[table.dataset.key]);
-			});
-			*/
 			this.selectedDetail = i;
 			this.eventTransmitter(e, i, origin);
 		}
-
 
 		switch (e.type) {
 			case "mouseover":
@@ -159,7 +131,7 @@ class ajaxTemplate {
 			console.log(`${this.element.id} -> ${map.id}`);
 			window["ajaxMaps"][map.dataset.key].eventReceiver(e, i, this.element.id);
 		});
-		
+
         let childTables = document.querySelectorAll(`[data-ajax='table'][data-master='${this.element.id}']`);
         childTables.forEach((table) => {
             if (table.id === origin) { return; }

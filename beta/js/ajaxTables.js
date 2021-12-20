@@ -2,17 +2,14 @@
 
 import { default as ajax } from "/e107_plugins/ajaxDBQuery/beta/js/ajaxDBQuery.js";
 import { default as storageHandler } from "/e107_plugins/storageHandler/js/storageHandler.js";
+import { default as jsonSQL } from "/e107_plugins/jsonSQL/js/jsonSQL.js";
 
 class ajaxTable {
 	constructor(element, index, tableOptions = {}) {
 		console.log("ajaxTable constructor");
 
-		this.colors = {};
-		this.colors.consoleLog = '#FFFFFF';
-		this.colors.consoleInfo = '#28a745';
-		this.colors.consoleWarn = '#FFFF00';
-		this.colors.consoleError = '#FF0000';
-		this.colors.consoleSuccess = '#28a745';
+		element.dataset.key = index;
+		element.setAttribute("id", `ajaxTables[${index}]`);
 
 		while (element.firstChild) {
 			element.removeChild(element.firstChild);
@@ -22,23 +19,21 @@ class ajaxTable {
 			this[key] = value;
 		}
 
-		this.element = element;
 		this.index = index;
+		this.element = element;
 		this.rows = {};
 		this.selectedRows = {};
-		//this.query = JSON.parse(element.dataset.query);
 
-		element.dataset.key = index;
-		element.setAttribute("id", `ajaxTables[${index}]`);
-
-		// TODO: If table is slave, don't do ajax requests...
-		// If we change the sort, use the sort of the master...
-		// (No need to sort a map..., change the sort of the current dataset with javascript)
-		// If we change the limit, use the limit of the master...
+		this.colors = {};
+		this.colors.consoleLog = '#FFFFFF';
+		this.colors.consoleInfo = '#28a745';
+		this.colors.consoleWarn = '#FFFF00';
+		this.colors.consoleError = '#FF0000';
+		this.colors.consoleSuccess = '#28a745';
 
 		this.tableCreate();
 
-	} // End of constructor
+	}
 
 	get Dataset() {
 		return this.element.dataset;
