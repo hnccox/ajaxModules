@@ -129,15 +129,15 @@ class ajaxMap {
         let markers = {};
         let selectedMarkers = {};
         let icon = L.icon({
-            iconUrl: "img/markers/m1_30.png",
+            iconUrl: "_icons/markers/m1_30.png",
             iconSize: [10, 10], // size of the icon
         });
         let highlightIcon = L.icon({
-            iconUrl: "img/markers/m1_30.png",
+            iconUrl: "_icons/markers/m1_30.png",
             iconSize: [15, 15], // size of the icon
         });
         let selectedIcon = L.icon({
-            iconUrl: "img/markers/m1y_0.png",
+            iconUrl: "_icons/markers/m1y_0.png",
             iconSize: [15, 15], // size of the icon
         });
 
@@ -858,34 +858,32 @@ class ajaxMap {
                     storageHandler.storage.session.remove(e.name);
                 }
                 if (document.getElementById(this.element.id).parentElement.querySelector('nav')) {
-                    var tableTabs = document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.children;
-                    var tablePanes = document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').children;
-                    for (var i = 0; i < tableTabs.length; i++) {
-                        if (!map.hasLayer(overlayMaps[tableTabs[i].innerText])) {
-                            var tableTab = tableTabs[i];
-                            var tablePane = tablePanes[i];
-                            // Check if current tab was the active tab..
-                            if (tableTab.classList.contains('active')) {
-                                tableTabs[0].firstElementChild.classList.add('active');
-                            }
-                            if (tablePane.classList.contains('show', 'active')) {
-                                tablePanes[0].classList.add('show', 'active');
-                            }
-                            document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.removeChild(tableTab);
-                            document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').removeChild(tablePane);
-                            delete window["ajaxTables"][tablePane.querySelector('table').dataset.key];
+
+                    var tableTabs = document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild;
+                    var tablePanes = document.getElementById(self.element.id).parentElement.querySelector('div.tab-content');
+    
+                    var tableTab = tableTabs.querySelector(`[data-layer='${e.name}']`);
+                    var tablePane = tablePanes.querySelector(`[data-layer='${e.name}']`);
+    
+                    var active = (tableTab.firstElementChild.classList.contains('active')) ? true : false;
+    
+                    document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.removeChild(tableTab);
+                    document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').removeChild(tablePane);
+                    delete window["ajaxTables"][tablePane.querySelector('table').dataset.key];
+    
+                    if (active) {
+                        if (tableTabs.children.length == 0) {
+                            var nav = document.getElementById(self.element.id).parentElement.querySelector('nav');
+                            var div = document.getElementById(self.element.id).parentElement.querySelector('div.tab-content');
+                            document.getElementById(self.element.id).style.height = '100%';
+                            document.getElementById(self.element.id).parentElement.removeChild(nav);
+                            document.getElementById(self.element.id).parentElement.removeChild(div);
+                            document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = '0';
+                        } else {
+                            tableTabs.children[0].firstElementChild.classList.add('active');
+                            tablePanes.children[0].classList.add('show', 'active');
                         }
                     }
-                    var x = tableTabs.length;
-                    if (x == 0) {
-                        var nav = document.getElementById(self.element.id).parentElement.querySelector('nav');
-                        var div = document.getElementById(self.element.id).parentElement.querySelector('div.tab-content');
-                        document.getElementById(self.element.id).style.height = '100%';
-                        document.getElementById(self.element.id).parentElement.removeChild(nav);
-                        document.getElementById(self.element.id).parentElement.removeChild(div);
-                        document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = '0';
-                    }
-
                 }
                 if (document.getElementById('div-templateContent')) {
                     var templates = document.getElementById('div-templateContent').children;
@@ -1085,7 +1083,7 @@ class ajaxMap {
             this.map.zoom = map.getZoom();
         })
         map.on('mousemove', e => {
-            console.info(`%cmousemove`, `color:${this.colors.consoleInfo}`)
+            //console.info(`%cmousemove`, `color:${this.colors.consoleInfo}`)
             //var projCoord = proj4(fromProjection, toProjection).forward([e.latlng.lng, e.latlng.lat]);
 
             //document.getElementById("mapinfocoordinates").innerHTML = e.latlng;
@@ -1329,7 +1327,14 @@ class ajaxMap {
             If event comes from parent -> send to children
             If event comes from child -> send to parent and (children - child)
         */
-        
+
+        let key;
+        if (origin === this.element.id) {
+            key = e.target.properties.layer;
+        } else {
+            key = document.querySelector(`[id='${origin}']`).dataset.key;
+        }
+
         if (this.element.dataset.master && origin !== this.element.dataset.master) {
             let parent = document.querySelector(`[id='${this.element.dataset.master}']`);
             console.log(`${this.element.id} -> ${parent.id}`);
@@ -1348,21 +1353,21 @@ class ajaxMap {
             }
         }
 
-        let childMaps = document.querySelectorAll(`[data-ajax='map'][data-master='${this.element.id}']`);
-		childMaps.forEach((map) => {
-			if (map.id === origin) { return; }
-			console.log(`${this.element.id} -> ${map.id}`);
-			window["ajaxMaps"][map.dataset.key].eventReceiver(e, i, this.element.id);
-		});
+        let childMaps = document.querySelectorAll(`[data-ajax='map'][data-master='${this.element.id}'][data-key='${key}']`);
+        childMaps.forEach((map) => {
+            if (map.id === origin) { return; }
+            console.log(`${this.element.id} -> ${map.id}`);
+            window["ajaxMaps"][map.dataset.key].eventReceiver(e, i, this.element.id);
+        });
 
-        let childTables = document.querySelectorAll(`[data-ajax='table'][data-master='${this.element.id}']`);
+        let childTables = document.querySelectorAll(`[data-ajax='table'][data-master='${this.element.id}'][data-key='${key}']`);
         childTables.forEach((table) => {
             if (table.id === origin) { return; }
             console.log(`${this.element.id} -> ${table.id}`);
             window["ajaxTables"][table.dataset.key].eventReceiver(e, i, this.element.id);
         });
 
-        let childTemplates = document.querySelectorAll(`[data-ajax='template'][data-master='${this.element.id}']`);
+        let childTemplates = document.querySelectorAll(`[data-ajax='template'][data-master='${this.element.id}'][data-key='${key}']`);
         childTemplates.forEach((template) => {
             if (template.id === origin) { return; }
             console.log(`${this.element.id} -> ${template.id}`);
@@ -1375,22 +1380,9 @@ class ajaxMap {
     }
 
     mapCallback(element) {
-        console.log("mapCallback");
+        console.info(`%cmapCallback`, `color: ${this.colors.consoleInfo}`);
 
         document.getElementById("totalrecords").innerHTML = `# Features in map view: <b>${this.Data.totalrecords}</b>`;
-
-        // let slaveTables = document.querySelectorAll(`[data-ajax='table'][data-master='${this.element.id}'][data-layer='${layer}']`);
-        // slaveTables.forEach((table) => {
-        //     if (this.map.getZoom() >= parseInt(this.element.dataset.zoomlevel, 10) /*|| self.getData().totalrecords <= self.getDataset().limit */) {
-        //         table.previousElementSibling.style.display = "none";
-        //         table.style.display = "table";
-        //         window["ajaxTables"][parseInt(table.dataset.key, 10)].tableTabulate(this.data);
-        //     } else {
-        //         table.previousElementSibling.style.display = "block";
-        //         table.style.display = "none";
-
-        //     }
-        // });
 
         if (this?._mapCallback?.functions) {
             let callbacks = this._mapCallback.functions;
@@ -1401,7 +1393,7 @@ class ajaxMap {
     }
 
     layerUpdate(layer, callback) {
-        console.info("%clayerUpdate", "color: #28a745");
+        console.info(`%clayerUpdate`, `color: ${this.colors.consoleInfo}`);
         if (storageHandler.storage.session.get(layer)) {
             return;
         }
@@ -1409,7 +1401,7 @@ class ajaxMap {
         let self = this;
 
         function layerTabulate(response) {
-            console.log("%clayerTabulate", "color:yellow");
+            console.log(`%clayerTabulate`, `color: ${self.colors.consoleWarn}`);
             if (response.type !== "success") return response;
 
             var startTime = performance.now()
@@ -1675,6 +1667,8 @@ class ajaxMap {
             // Create new tab element
             var li = document.createElement('li');
             li.classList.add('nav-item');
+            li.dataset.layer = layer;
+            li.dataset.layerId = self.overlayMaps[layer]._leaflet_id;
             li.setAttribute('role', 'presentation');
 
             var button = document.createElement('button');
@@ -1682,8 +1676,6 @@ class ajaxMap {
             button.id = `nav-${self.overlayMaps[layer]._leaflet_id}-tab`;
             button.dataset.bsToggle = "tab";
             button.dataset.bsTarget = `#nav-${self.overlayMaps[layer]._leaflet_id}`;
-            button.dataset.layer = layer;
-            button.dataset.layerId = self.overlayMaps[layer]._leaflet_id;
             button.type = "button";
             button.setAttribute('role', 'tab');
             button.setAttribute('aria-controls', `nav-${self.overlayMaps[layer]._leaflet_id}`);
@@ -1698,32 +1690,31 @@ class ajaxMap {
             close.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                var tableTabs = document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.children;
-                var tablePanes = document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').children;
-                for (var i = 0; i < tableTabs.length; i++) {
-                    if (tableTabs[i].firstElementChild.innerText == e.target.parentElement.firstElementChild.innerText) {   // We keep the layer obviously..
-                        var tableTab = tableTabs[i];
-                        var tablePane = tablePanes[i];
-                        // Check if current tab was the active tab..
-                        if (tableTab.classList.contains('active')) {
-                            tableTabs[0].firstElementChild.classList.add('active');
-                        }
-                        if (tablePane.classList.contains('show', 'active')) {
-                            tablePanes[0].classList.add('show', 'active');
-                        }
-                        document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.removeChild(tableTab);
-                        document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').removeChild(tablePane);
-                        delete window["ajaxTables"][tablePane.querySelector('table').dataset.key];
+
+                var tableTabs = document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild;
+                var tablePanes = document.getElementById(self.element.id).parentElement.querySelector('div.tab-content');
+
+                var tableTab = tableTabs.querySelector(`[data-layer='${e.target.parentElement.dataset.layer}']`);
+                var tablePane = tablePanes.querySelector(`[data-layer='${e.target.parentElement.dataset.layer}']`);
+
+                var active = (tableTab.firstElementChild.classList.contains('active')) ? true : false;
+
+                document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.removeChild(tableTab);
+                document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').removeChild(tablePane);
+                delete window["ajaxTables"][tablePane.querySelector('table').dataset.key];
+
+                if (active) {
+                    if (tableTabs.children.length == 0) {
+                        var nav = document.getElementById(self.element.id).parentElement.querySelector('nav');
+                        var div = document.getElementById(self.element.id).parentElement.querySelector('div.tab-content');
+                        document.getElementById(self.element.id).style.height = '100%';
+                        document.getElementById(self.element.id).parentElement.removeChild(nav);
+                        document.getElementById(self.element.id).parentElement.removeChild(div);
+                        document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = '0';
+                    } else {
+                        tableTabs.children[0].firstElementChild.classList.add('active');
+                        tablePanes.children[0].classList.add('show', 'active');
                     }
-                }
-                var x = tableTabs.length;
-                if (x == 0) {
-                    var nav = document.getElementById(self.element.id).parentElement.querySelector('nav');
-                    var div = document.getElementById(self.element.id).parentElement.querySelector('div.tab-content');
-                    document.getElementById(self.element.id).style.height = '100%';
-                    document.getElementById(self.element.id).parentElement.removeChild(nav);
-                    document.getElementById(self.element.id).parentElement.removeChild(div);
-                    document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = '0';
                 }
             })
 

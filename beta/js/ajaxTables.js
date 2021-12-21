@@ -50,7 +50,12 @@ class ajaxTable {
 	eventReceiver(e, i, origin) {
 		console.info(`%c${this.element.id} eventReceiver: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
 
-		if (!this.element.querySelector('tr[data-id="' + i + '"]') || this.selectedRows[i]) {
+		if (this.selectedRows[i]) {
+			this.eventTransmitter(e, i, origin);
+			return;
+		}
+
+		if (!this.element.querySelector('tr[data-id="' + i + '"]')) {
 			this.eventTransmitter(e, i, origin);
 			return;
 		}
