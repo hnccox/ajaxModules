@@ -12,9 +12,10 @@ class ajaxTemplate {
 		element.dataset.key = index;
 		element.setAttribute("id", `ajaxTemplates[${index}]`);
 
-		while (element.firstChild) {
-			element.removeChild(element.firstChild);
-		}
+		// while (element.firstChild) {
+		// 	element.removeChild(element.firstChild);
+		// }
+		// TODO: Now import the template file..
 
 		for (const [key, value] of Object.entries(templateOptions)) {
 			this[key] = value;
@@ -173,14 +174,14 @@ class ajaxTemplate {
 
 	}
 
-	templateCallback() {
+	templateCallback(element) {
 		console.info(`%ctemplateCallback`, `color:${this.colors.consoleWarn}`);
-		if (this?._templateCallback?.functions) {
-			let callbacks = this._templateCallback.functions;
-			Object.keys(callbacks).forEach(function (value) {
-				callbacks[value](element);
-			})
-		}
+		// if (this?._templateCallback?.functions) {
+		// 	let callbacks = this._templateCallback.functions;
+		// 	Object.keys(callbacks).forEach(function (value) {
+		// 		callbacks[value](element);
+		// 	})
+		// }
 	}
 
 	templateTabulate(response) {

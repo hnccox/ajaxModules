@@ -861,24 +861,23 @@ class ajaxMap {
 
                     var tableTabs = document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild;
                     var tablePanes = document.getElementById(self.element.id).parentElement.querySelector('div.tab-content');
-    
+
                     var tableTab = tableTabs.querySelector(`[data-layer='${e.name}']`);
                     var tablePane = tablePanes.querySelector(`[data-layer='${e.name}']`);
-    
+
                     var active = (tableTab.firstElementChild.classList.contains('active')) ? true : false;
-    
+
                     document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.removeChild(tableTab);
                     document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').removeChild(tablePane);
                     delete window["ajaxTables"][tablePane.querySelector('table').dataset.key];
-    
+
                     if (active) {
                         if (tableTabs.children.length == 0) {
-                            var nav = document.getElementById(self.element.id).parentElement.querySelector('nav');
-                            var div = document.getElementById(self.element.id).parentElement.querySelector('div.tab-content');
                             document.getElementById(self.element.id).style.height = '100%';
-                            document.getElementById(self.element.id).parentElement.removeChild(nav);
-                            document.getElementById(self.element.id).parentElement.removeChild(div);
+                            document.getElementById(self.element.id).parentElement.removeChild(tableTabs.parentElement);
+                            document.getElementById(self.element.id).parentElement.removeChild(tablePanes);
                             document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = '0';
+                            this.map.invalidateSize();
                         } else {
                             tableTabs.children[0].firstElementChild.classList.add('active');
                             tablePanes.children[0].classList.add('show', 'active');
@@ -886,7 +885,7 @@ class ajaxMap {
                     }
                 }
                 if (document.getElementById('div-templateContent')) {
-                    var templates = document.getElementById('div-templateContent').children;
+                    var templates = document.getElementById('div-templateContent').childNodes;
                     for (var i = 1; i < templates.length; i++) {
                         if (!map.hasLayer(overlayMaps[templates[i].dataset.layer])) {
                             var template = templates[i];
@@ -1241,6 +1240,21 @@ class ajaxMap {
         console.info(`%c${this.element.id} eventReceiver: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
 
         if (this.selectedMarkers[i]) {
+
+            if (e.type == 'click' && this.element.parentElement.classList.contains('fullscreen') && document.getElementById('div-templateContent')) {
+                var container = document.getElementById(this.element.id).parentElement;
+                var templates = container.querySelector('#div-templateContent').childNodes;
+                templates.forEach(template => {
+                    console.log(template.dataset);
+                    if (template.dataset.key == document.getElementById(origin).dataset.layer) {
+                        template.classList.add('show', 'active');
+                    } else {
+                        template.classList.remove('show', 'active');
+                    }
+                })
+                document.getElementById('div-templateContent').scrollIntoView();
+            }
+
             this.eventTransmitter(e, i, origin);
             return;
         }
@@ -1261,7 +1275,7 @@ class ajaxMap {
         const mouseup = () => {
             //marker.setIcon(this.selectedIcon);
         }
-        const click = () => {
+        const click = () => {            
             if (Object.keys(self.selectedMarkers).length > 0) {
                 Object.keys(self.selectedMarkers).forEach(function (key) {
                     self.selectedMarkers[key].setIcon(self.selectedMarkers[key].properties.icon);
@@ -1489,6 +1503,22 @@ class ajaxMap {
                         self.eventTransmitter(e, i);
                     });
                     marker.addEventListener('click', (e) => {
+
+                        if (self.selectedMarkers[i] == marker && self.element.parentElement.classList.contains('fullscreen') && document.getElementById('div-templateContent')) {
+                            var container = document.getElementById(self.element.id).parentElement;
+                            var templates = container.querySelector('#div-templateContent').childNodes;
+                            templates.forEach(template => {
+                                console.log(template.dataset);
+                                if (template.dataset.key == layer) {
+                                    template.classList.add('show', 'active');
+                                } else {
+                                    template.classList.remove('show', 'active');
+                                }
+                            })
+                            document.getElementById('div-templateContent').scrollIntoView();
+                            return;
+                        }
+
                         if (Object.keys(self.selectedMarkers).length > 0) {
                             if (!self.selectedMarkers[i]) {
                                 Object.values(self.selectedMarkers).forEach(function (marker) {
@@ -1626,16 +1656,18 @@ class ajaxMap {
 
             document.getElementById(self.element.id).style.height = 'calc(60vh - 56px)';
             document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = '56px';
+            this.map.invalidateSize();
 
             /* Create new nav element if it doesn't already exist */
             if (!container.querySelector('nav')) {
                 var nav = document.createElement('nav');
                 nav.style.position = 'absolute';
                 nav.style.top = 'auto';
-                nav.style.right = 'auto';
+                nav.style.right = '0';
                 nav.style.bottom = '40vh';
-                nav.style.left = 'auto';
+                nav.style.left = '0';
                 nav.style.zIndex = '999';
+                nav.style.pointerEvents = 'none';
 
                 var ul = document.createElement('ul');
                 ul.classList.add('nav', 'nav-tabs');
@@ -1670,6 +1702,8 @@ class ajaxMap {
             li.dataset.layer = layer;
             li.dataset.layerId = self.overlayMaps[layer]._leaflet_id;
             li.setAttribute('role', 'presentation');
+            li.style.marginRight = '-0.9em';
+            li.style.pointerEvents = 'all';
 
             var button = document.createElement('button');
             button.classList.add('nav-link', 'link-dark', 'bg-light', 'pull-left', 'active');
@@ -1685,8 +1719,11 @@ class ajaxMap {
             var close = document.createElement('button');
             close.classList.add('btn-close', 'btn-xxs');
             close.setAttribute('aria-label', 'Close');
-            close.style.marginTop = '0.3em';
-            close.style.marginLeft = '-1.9em';
+            close.style.position = 'relative';
+            close.style.top = '-0.7em';
+            close.style.right = '1.8em';
+            close.style.bottom = 'auto';
+            close.style.left = 'auto';
             close.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1705,12 +1742,11 @@ class ajaxMap {
 
                 if (active) {
                     if (tableTabs.children.length == 0) {
-                        var nav = document.getElementById(self.element.id).parentElement.querySelector('nav');
-                        var div = document.getElementById(self.element.id).parentElement.querySelector('div.tab-content');
                         document.getElementById(self.element.id).style.height = '100%';
-                        document.getElementById(self.element.id).parentElement.removeChild(nav);
-                        document.getElementById(self.element.id).parentElement.removeChild(div);
+                        document.getElementById(self.element.id).parentElement.removeChild(tableTabs.parentElement);
+                        document.getElementById(self.element.id).parentElement.removeChild(tablePanes);
                         document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = '0';
+                        this.map.invalidateSize();
                     } else {
                         tableTabs.children[0].firstElementChild.classList.add('active');
                         tablePanes.children[0].classList.add('show', 'active');
@@ -1794,7 +1830,7 @@ class ajaxMap {
                 if (this.onMobile) {
                     div.style.width = '100vw';
                 } else {
-                    div.style.width = '30vw';
+                    div.style.width = '100vw';
                 }
                 div.style.height = '100vh';
                 div.style.backgroundColor = 'inherit';

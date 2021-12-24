@@ -149,6 +149,6 @@ ul#nav-tab li.nav-item:hover button.btn-close {
 }
 
 .nav-tabs .nav-link {
-	writing-mode: vertical-rl;
+	/*writing-mode: vertical-rl;*/
 	text-orientation: mixed;
 }
