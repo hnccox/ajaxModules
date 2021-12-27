@@ -884,21 +884,21 @@ class ajaxMap {
                         }
                     }
                 }
-                if (document.getElementById('div-templateContent')) {
-                    var templates = document.getElementById('div-templateContent').childNodes;
+                if (document.querySelector('#templateContainer')) {
+                    var templates = document.querySelector('#templateContainer').childNodes;
                     for (var i = 1; i < templates.length; i++) {
                         if (!map.hasLayer(overlayMaps[templates[i].dataset.layer])) {
                             var template = templates[i];
                             if (template.classList.contains('show', 'active')) {
                                 templates[1].classList.add('show', 'active');
                             }
-                            document.getElementById('div-templateContent').removeChild(template);
+                            document.querySelector('#templateContainer').removeChild(template);
                             delete window["ajaxTemplates"][template.dataset.layer]
                         }
                     }
                     var x = templates.length;
                     if (x == 1) {
-                        var templateContainer = document.getElementById('div-templateContent');
+                        var templateContainer = document.querySelector('#templateContainer');
                         document.getElementById(self.element.id).parentElement.removeChild(templateContainer);
                     }
                 }
@@ -1241,9 +1241,9 @@ class ajaxMap {
 
         if (this.selectedMarkers[i]) {
 
-            if (e.type == 'click' && this.element.parentElement.classList.contains('fullscreen') && document.getElementById('div-templateContent')) {
+            if (e.type == 'click' && this.element.parentElement.classList.contains('fullscreen') && document.querySelector('#templateContainer')) {
                 var container = document.getElementById(this.element.id).parentElement;
-                var templates = container.querySelector('#div-templateContent').childNodes;
+                var templates = document.querySelector('#templateContainer').childNodes;
                 templates.forEach(template => {
                     console.log(template.dataset);
                     if (template.dataset.key == document.getElementById(origin).dataset.layer) {
@@ -1252,7 +1252,7 @@ class ajaxMap {
                         template.classList.remove('show', 'active');
                     }
                 })
-                document.getElementById('div-templateContent').scrollIntoView();
+                document.querySelector('#templateContainer').scrollIntoView();
             }
 
             this.eventTransmitter(e, i, origin);
@@ -1504,9 +1504,9 @@ class ajaxMap {
                     });
                     marker.addEventListener('click', (e) => {
 
-                        if (self.selectedMarkers[i] == marker && self.element.parentElement.classList.contains('fullscreen') && document.getElementById('div-templateContent')) {
+                        if (self.selectedMarkers[i] == marker && self.element.parentElement.classList.contains('fullscreen') && document.querySelector('#templateContainer')) {
                             var container = document.getElementById(self.element.id).parentElement;
-                            var templates = container.querySelector('#div-templateContent').childNodes;
+                            var templates = container.querySelector('#templateContainer').childNodes;
                             templates.forEach(template => {
                                 console.log(template.dataset);
                                 if (template.dataset.key == layer) {
@@ -1515,7 +1515,7 @@ class ajaxMap {
                                     template.classList.remove('show', 'active');
                                 }
                             })
-                            document.getElementById('div-templateContent').scrollIntoView();
+                            document.querySelector('#templateContainer').scrollIntoView();
                             return;
                         }
 
@@ -1608,10 +1608,10 @@ class ajaxMap {
 
         if (this.onMobile) {
             // Mobile screen size
-            if (!container.querySelector('#div-templateContent')) {
+            if (!document.querySelector('#templateContainer')) {
                 var div = document.createElement('div');
                 div.classList.add('container-fluid');
-                div.id = "div-templateContent";
+                div.id = "templateContainer";
                 div.style.position = 'absolute';
                 div.style.top = '100vh';
                 div.style.left = '0';
@@ -1642,13 +1642,13 @@ class ajaxMap {
             template.dataset.layerId = self.overlayMaps[layer]._leaflet_id;
             template.classList.add('show', 'active');
 
-            var templates = container.querySelector('#div-templateContent').childNodes;
+            var templates = document.querySelector('#templateContainer').childNodes;
             templates.forEach(template => {
                 template.classList.remove('show', 'active');
             })
-            container.querySelector('#div-templateContent').appendChild(template); // Remove on layerremove
+            document.querySelector('#templateContainer').appendChild(template); // Remove on layerremove
 
-            var element = container.querySelector('#div-templateContent').lastElementChild;
+            var element = document.querySelector('#templateContainer').lastElementChild;
             window["ajaxTemplates"][layer] = new ajaxTemplate(element, layer);
 
 
@@ -1820,10 +1820,10 @@ class ajaxMap {
             window["ajaxTables"][layer] = new ajaxTable(element, layer);
 
             // TODO
-            if (!container.querySelector('#div-templateContent')) {
+            if (!document.querySelector('#templateContainer')) {
                 var div = document.createElement('div');
                 div.classList.add('container-fluid');
-                div.id = "div-templateContent";
+                div.id = "templateContainer";
                 div.style.position = 'absolute';
                 div.style.top = '0';
                 div.style.left = '100%';
@@ -1855,13 +1855,13 @@ class ajaxMap {
             template.dataset.layerId = self.overlayMaps[layer]._leaflet_id;
             template.classList.add('show', 'active');
 
-            var templates = container.querySelector('#div-templateContent').childNodes;
+            var templates = document.querySelector('#templateContainer').childNodes;
             templates.forEach(template => {
                 template.classList.remove('show', 'active');
             })
-            container.querySelector('#div-templateContent').appendChild(template); // Remove on layerremove
+            document.querySelector('#templateContainer').appendChild(template); // Remove on layerremove
 
-            var element = container.querySelector('#div-templateContent').lastElementChild;
+            var element = document.querySelector('#templateContainer').lastElementChild;
             window["ajaxTemplates"][layer] = new ajaxTemplate(element, layer);
 
         }
