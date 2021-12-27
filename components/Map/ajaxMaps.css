@@ -1,0 +1,168 @@
+/* Smartphones ----------- */
+@media only screen and (max-width: 760px) {
+	.map[data-ajax] ~ nav {
+		display: none;
+	}
+
+	.map[data-ajax] ~ div.tab-content {
+		display: none;
+	}
+}
+
+.leaflet-touch .leaflet-bar .leaflet-bar-part.leaflet-bar-part-single.leaflet-locate-text-active {
+	padding: 0 7px;
+}
+
+#layout-jumbotron-fullscreen {
+	overflow: hidden;
+}
+
+.square {
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	width: 100%;
+	border: 4px solid rgba(255, 205, 0, 1);
+}
+
+.square::after {
+	content: "";
+	display: block;
+	padding-bottom: calc(100% - 56px - 16px);
+}
+
+.square > .map {
+	position: absolute !important;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+}
+
+footer {
+	display: none;
+}
+
+.content {
+	width: 100%;
+	height: 100%;
+}
+
+.fullscreen {
+	display: flex;
+	flex-direction: column;
+	top: 56px;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	height: calc(100% - 56px);
+	width: 100%;
+	overflow: hidden;
+}
+
+.fullscreen > .map {
+	overflow: revert;
+}
+
+.fullscreen table[data-ajax] tfoot {
+	display: none;
+}
+
+.fullscreen + footer {
+	display: none;
+}
+
+.fixed {
+	position: fixed;
+}
+
+.map[data-ajax] + nav {
+	/* position: relative;
+	top: 65vh; */
+	z-index: 999;
+}
+
+.bg-light.active {
+	background-color: rgb(255, 255, 255) !important;
+}
+
+.map[data-ajax] .templatecontainer {
+	position: absolute;
+	top: 0;
+	left: 100%;
+	bottom: 0;
+	right: 0;
+	width: 40vw;
+	height: calc(100vh - 56px);
+	background-color: rgba(255, 255, 255, 0.6);
+	z-index: 999;
+	overflow-x: auto;
+	overflow-y: hidden;
+	white-space: nowrap;
+	border-left: solid black 1px;
+}
+
+.marker-cluster {
+	background-clip: padding-box;
+	border-radius: 20px;
+}
+.marker-cluster div {
+	width: 30px;
+	height: 30px;
+	margin-left: 5px;
+	margin-top: 5px;
+
+	text-align: center;
+	border-radius: 15px;
+	font: 12px "Helvetica Neue", Arial, Helvetica, sans-serif;
+}
+.marker-cluster span {
+	line-height: 30px;
+}
+
+.marker-cluster.marker-cluster-small {
+	background-color: rgba(224, 224, 224, 0.6);
+}
+.marker-cluster.marker-cluster-small div {
+	background-color: rgba(255, 255, 255, 0.6);
+}
+
+.marker-cluster.marker-cluster-medium {
+	background-color: rgba(224, 224, 224, 0.6);
+}
+.marker-cluster.marker-cluster-medium div {
+	background-color: rgba(255, 255, 255, 0.6);
+}
+
+.marker-cluster.marker-cluster-large {
+	background-color: rgba(224, 224, 224, 0.6);
+}
+.marker-cluster.marker-cluster-large div {
+	background-color: rgba(255, 255, 255, 0.6);
+}
+
+.marker-cluster.marker-cluster-xl {
+	background-color: rgba(224, 224, 224, 0.6);
+}
+.marker-cluster.marker-cluster-xl div {
+	background-color: rgba(255, 255, 255, 0.6);
+}
+
+.marker-cluster.marker-cluster-xxl {
+	border-radius: 40px;
+	background-color: rgba(224, 224, 224, 0.6);
+	background-clip: padding-box;
+}
+.marker-cluster.marker-cluster-xxl div {
+	width: 60px;
+	height: 60px;
+	margin-left: 10px;
+	margin-top: 10px;
+	text-align: center;
+	border-radius: 30px;
+	font: 12px "Helvetica Neue", Arial, Helvetica, sans-serif;
+	background-color: rgba(255, 255, 255, 0.6);
+}
+.marker-cluster.marker-cluster-xxl span {
+	line-height: 60px;
+}
