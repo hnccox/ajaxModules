@@ -2,8 +2,8 @@
 'use strict';
 
 import { default as ajax } from "/e107_plugins/ajaxDBQuery/client/js/ajaxDBQuery.js";
-import { default as ajaxTable } from "/e107_plugins/ajaxModules/components/Table/ajaxTables.js";
-import { default as ajaxTemplate } from "/e107_plugins/ajaxModules/components/Template/ajaxTemplates.js";
+import { default as ajaxTable } from "/e107_plugins/ajaxModules/Components/Table/ajaxTables.js";
+import { default as ajaxTemplate } from "/e107_plugins/ajaxModules/Components/Template/ajaxTemplates.js";
 import { default as storageHandler } from "/e107_plugins/storageHandler/js/storageHandler.js";
 import { default as jsonSQL } from "/e107_plugins/jsonSQL/js/jsonSQL.js";
 
@@ -865,11 +865,13 @@ class ajaxMap {
                     var tableTab = tableTabs.querySelector(`[data-layer='${e.name}']`);
                     var tablePane = tablePanes.querySelector(`[data-layer='${e.name}']`);
 
-                    var active = (tableTab.firstElementChild.classList.contains('active')) ? true : false;
+                    var active = (tableTab?.firstElementChild.classList.contains('active')) ? true : false;
 
-                    document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.removeChild(tableTab);
-                    document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').removeChild(tablePane);
-                    delete window["ajaxTables"][tablePane.querySelector('table').dataset.key];
+                    if (tableTab) { document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.removeChild(tableTab); }
+                    if (tablePane) {
+                        document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').removeChild(tablePane);
+                        delete window["ajaxTables"][tablePane.querySelector('table').dataset.key];
+                    }
 
                     if (active) {
                         if (tableTabs.children.length == 0) {
@@ -1239,15 +1241,19 @@ class ajaxMap {
     eventReceiver(e, i, origin) {
         console.info(`%c${this.element.id} eventReceiver: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
 
+        let self = this;
+        var layer = document.querySelector(`[id='${origin}']`).dataset.key;
+        var marker = this._overlayGroups[layer].markers[i];
+
         if (this.selectedMarkers[i]) {
 
             if (e.type == 'click' && this.element.parentElement.classList.contains('fullscreen') && document.querySelector('#templateContainer')) {
-                var container = document.getElementById(this.element.id).parentElement;
+                //var container = document.getElementById(this.element.id).parentElement;
                 var templates = document.querySelector('#templateContainer').childNodes;
                 templates.forEach(template => {
-                    console.log(template.dataset);
-                    if (template.dataset.key == document.getElementById(origin).dataset.layer) {
+                    if (template.dataset.key == document.querySelector(`[id='${origin}']`).dataset.key) {
                         template.classList.add('show', 'active');
+                        template.firstElementChild.src = self._overlayMaps[layer].templateParams.url.replace(":uid", i);
                     } else {
                         template.classList.remove('show', 'active');
                     }
@@ -1258,10 +1264,6 @@ class ajaxMap {
             this.eventTransmitter(e, i, origin);
             return;
         }
-
-        let self = this;
-        var layer = document.querySelector(`[id='${origin}']`).dataset.key;
-        var marker = this._overlayGroups[layer].markers[i];
 
         const mouseover = () => {
             marker.setIcon(marker.properties.highlightIcon);
@@ -1275,7 +1277,7 @@ class ajaxMap {
         const mouseup = () => {
             //marker.setIcon(this.selectedIcon);
         }
-        const click = () => {            
+        const click = () => {
             if (Object.keys(self.selectedMarkers).length > 0) {
                 Object.keys(self.selectedMarkers).forEach(function (key) {
                     self.selectedMarkers[key].setIcon(self.selectedMarkers[key].properties.icon);
@@ -1505,12 +1507,12 @@ class ajaxMap {
                     marker.addEventListener('click', (e) => {
 
                         if (self.selectedMarkers[i] == marker && self.element.parentElement.classList.contains('fullscreen') && document.querySelector('#templateContainer')) {
-                            var container = document.getElementById(self.element.id).parentElement;
-                            var templates = container.querySelector('#templateContainer').childNodes;
+                            //var container = document.getElementById(self.element.id).parentElement;
+                            var templates = document.querySelector('#templateContainer').childNodes;
                             templates.forEach(template => {
-                                console.log(template.dataset);
                                 if (template.dataset.key == layer) {
                                     template.classList.add('show', 'active');
+                                    template.firstElementChild.src = self._overlayMaps[layer].templateParams.url.replace(":uid", i);
                                 } else {
                                     template.classList.remove('show', 'active');
                                 }
@@ -1597,10 +1599,84 @@ class ajaxMap {
 
     templateCreate(layer) {
 
+        let self = this;
+
+        /* Select the container element */
+        var container = document.getElementById(self.element.id).parentElement;
+
+        if (!document.querySelector('#templateContainer')) {
+
+            var div = document.createElement('div');
+            div.classList.add('container-fluid', 'p-0', 'templatecontainer');
+            div.id = 'templateContainer';
+            div.style.position = 'absolute';
+            if (this.onMobile) {
+                div.style.top = '100vh';
+                div.style.left = '0';
+                div.style.width = '100vw';
+            } else {
+                div.style.top = '0';
+                div.style.left = '100%';
+                div.style.width = '100vw';
+            }
+            div.style.height = '100vh';
+            div.style.backgroundColor = 'inherit';
+
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.classList.add('btn-close');
+            button.style.position = 'fixed';
+            button.style.top = '1rem';
+            button.style.left = '1rem';
+            button.style.opacity = '1';
+            button.style.backgroundColor = '#fff';
+            button.setAttribute('aria-label', 'Close');
+            if (this.onMobile) {
+                button.addEventListener("click", function () {
+                    window.scrollTo({
+                        top: '56px',
+                        behavior: 'smooth'
+                    });
+                })
+            } else {
+                button.addEventListener("click", function () {
+                    document.querySelector(`[id='${self.element.id}']`).scrollIntoView();
+                })
+            }
+            div.appendChild(button);
+            container.appendChild(div);
+
+        }
+
+        /* Create the template element */
+        var template = document.createElement('div');
+        template.dataset.ajax = 'template';
+        template.dataset.master = `${self.element.id}`;
+        template.dataset.layer = layer;
+        template.dataset.layerId = self.overlayMaps[layer]._leaflet_id;
+        template.classList.add('show', 'active');
+        template.style.width = '100%';
+        template.style.height = '100%';
+
+        var iframe = document.createElement('iframe');
+        iframe.src = '';
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        template.appendChild(iframe);
+
+        var templates = document.querySelector('#templateContainer').childNodes;
+        templates.forEach(template => {
+            template.classList.remove('show', 'active');
+        })
+        document.querySelector('#templateContainer').appendChild(template); // Remove on layerremove
+
+        var element = document.querySelector('#templateContainer').lastElementChild;
+        window["ajaxTemplates"][layer] = new ajaxTemplate(element, layer);
+
     }
 
     tableCreate(layer) {
-
+        
         let self = this;
 
         /* Select the container element */
@@ -1608,49 +1684,7 @@ class ajaxMap {
 
         if (this.onMobile) {
             // Mobile screen size
-            if (!document.querySelector('#templateContainer')) {
-                var div = document.createElement('div');
-                div.classList.add('container-fluid');
-                div.id = "templateContainer";
-                div.style.position = 'absolute';
-                div.style.top = '100vh';
-                div.style.left = '0';
-                div.style.height = '100vh';
-                div.style.backgroundColor = 'inherit';
-
-                var button = document.createElement('button');
-                button.type = 'button';
-                button.classList.add('btn-close', 'mt-3', 'pull-left');
-                button.setAttribute('aria-label', 'Close');
-                button.addEventListener("click", function () {
-                    // document.querySelector(`[id='${self.element.id}']`).scrollIntoView();
-                    window.scrollTo({
-                        top: '56px',
-                        behavior: 'smooth'
-                    });
-                })
-
-                div.appendChild(button);
-                container.appendChild(div);
-            }
-
-            /* Create the template element */
-            var template = document.createElement('div');
-            template.dataset.ajax = 'template';
-            template.dataset.master = `${self.element.id}`;
-            template.dataset.layer = layer;
-            template.dataset.layerId = self.overlayMaps[layer]._leaflet_id;
-            template.classList.add('show', 'active');
-
-            var templates = document.querySelector('#templateContainer').childNodes;
-            templates.forEach(template => {
-                template.classList.remove('show', 'active');
-            })
-            document.querySelector('#templateContainer').appendChild(template); // Remove on layerremove
-
-            var element = document.querySelector('#templateContainer').lastElementChild;
-            window["ajaxTemplates"][layer] = new ajaxTemplate(element, layer);
-
+            this.templateCreate(layer)
 
         } else {
 
@@ -1734,11 +1768,13 @@ class ajaxMap {
                 var tableTab = tableTabs.querySelector(`[data-layer='${e.target.parentElement.dataset.layer}']`);
                 var tablePane = tablePanes.querySelector(`[data-layer='${e.target.parentElement.dataset.layer}']`);
 
-                var active = (tableTab.firstElementChild.classList.contains('active')) ? true : false;
+                var active = (tableTab?.firstElementChild.classList.contains('active')) ? true : false;
 
-                document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.removeChild(tableTab);
-                document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').removeChild(tablePane);
-                delete window["ajaxTables"][tablePane.querySelector('table').dataset.key];
+                if (tableTab) { document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.removeChild(tableTab); }
+                if (tablePane) {
+                    document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').removeChild(tablePane);
+                    delete window["ajaxTables"][tablePane.querySelector('table').dataset.key];
+                }
 
                 if (active) {
                     if (tableTabs.children.length == 0) {
@@ -1819,50 +1855,7 @@ class ajaxMap {
             var element = container.querySelector(`#nav-${self.overlayMaps[layer]._leaflet_id}`).lastElementChild.lastElementChild;
             window["ajaxTables"][layer] = new ajaxTable(element, layer);
 
-            // TODO
-            if (!document.querySelector('#templateContainer')) {
-                var div = document.createElement('div');
-                div.classList.add('container-fluid');
-                div.id = "templateContainer";
-                div.style.position = 'absolute';
-                div.style.top = '0';
-                div.style.left = '100%';
-                if (this.onMobile) {
-                    div.style.width = '100vw';
-                } else {
-                    div.style.width = '100vw';
-                }
-                div.style.height = '100vh';
-                div.style.backgroundColor = 'inherit';
-
-                var button = document.createElement('button');
-                button.type = 'button';
-                button.classList.add('btn-close', 'mt-3', 'pull-left');
-                button.setAttribute('aria-label', 'Close');
-                button.addEventListener("click", function () {
-                    document.querySelector(`[id='${self.element.id}']`).scrollIntoView();
-                })
-
-                div.appendChild(button);
-                container.appendChild(div);
-
-            }
-
-            var template = document.createElement('div');
-            template.dataset.ajax = 'template';
-            template.dataset.master = `${self.element.id}`;
-            template.dataset.layer = layer;
-            template.dataset.layerId = self.overlayMaps[layer]._leaflet_id;
-            template.classList.add('show', 'active');
-
-            var templates = document.querySelector('#templateContainer').childNodes;
-            templates.forEach(template => {
-                template.classList.remove('show', 'active');
-            })
-            document.querySelector('#templateContainer').appendChild(template); // Remove on layerremove
-
-            var element = document.querySelector('#templateContainer').lastElementChild;
-            window["ajaxTemplates"][layer] = new ajaxTemplate(element, layer);
+            this.templateCreate(layer)
 
         }
     }
@@ -1961,26 +1954,5 @@ class ajaxMap {
     }
 
 }
-
-// create new link tag
-var link = document.createElement('link');
-
-// set properties of link tag
-link.href = '/e107_plugins/ajaxModules/components/Map/ajaxMaps.css';
-link.rel = 'stylesheet';
-link.type = 'text/css';
-
-// Loaded successfully
-link.onload = function() {
-	console.log('success');
-};
-
-// Loading failed
-link.onerror = function() {
-	console.log('error');
-};
-
-// append link element to html
-document.body.appendChild(link);
 
 export default ajaxMap;

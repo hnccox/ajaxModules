@@ -848,7 +848,7 @@ class ajaxTable {
 var link = document.createElement('link');
 
 // set properties of link tag
-link.href = '/e107_plugins/ajaxModules/components/Table/ajaxTables.css';
+link.href = '/e107_plugins/ajaxModules/Components/Table/ajaxTables.css';
 link.rel = 'stylesheet';
 link.type = 'text/css';
 

@@ -220,7 +220,7 @@ class ajaxMenu {
 var link = document.createElement('link');
 
 // set properties of link tag
-link.href = '/e107_plugins/ajaxModules/components/Menu/ajaxMenus.css';
+link.href = '/e107_plugins/ajaxModules/Components/Menu/ajaxMenus.css';
 link.rel = 'stylesheet';
 link.type = 'text/css';
 

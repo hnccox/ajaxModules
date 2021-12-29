@@ -55,13 +55,18 @@ footer {
 	right: 0;
 	bottom: 0;
 	left: 0;
-	height: calc(100% - 56px);
+	height: calc(100vh - 56px);
 	width: 100%;
 	overflow: hidden;
 }
 
 .fullscreen > .map {
-	overflow: revert;
+	position: relative !important;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	/* overflow: revert; */
 }
 
 .fullscreen table[data-ajax] tfoot {
@@ -100,6 +105,14 @@ footer {
 	overflow-y: hidden;
 	white-space: nowrap;
 	border-left: solid black 1px;
+}
+
+.templatecontainer div[data-ajax="template"] {
+	display: none;
+}
+
+.templatecontainer div[data-ajax="template"].show.active {
+	display: block;
 }
 
 .marker-cluster {

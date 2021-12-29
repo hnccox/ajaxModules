@@ -233,7 +233,7 @@ class ajaxTemplate {
 var link = document.createElement('link');
 
 // set properties of link tag
-link.href = '/e107_plugins/ajaxModules/components/Template/ajaxTemplates.css';
+link.href = '/e107_plugins/ajaxModules/Components/Template/ajaxTemplates.css';
 link.rel = 'stylesheet';
 link.type = 'text/css';
 
