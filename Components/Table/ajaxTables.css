@@ -1,6 +1,8 @@
+@import url('https://cdn.jsdelivr.net/fontawesome/4.7.0/css/font-awesome.min.css');
+
 /* Scrollable Table */
 div.table-scrollable {
-	margin-top: 2.67em;
+	/* margin-top: 2.67em; */
 }
 
 div.table-scrollable > table {
@@ -111,10 +113,6 @@ table[data-ajax] tbody tr td {
 *:focus:not(:focus-visible) {
 	outline: 0 !important;
 	box-shadow: none !important;
-}
-
-.mb-0 {
-	margin-bottom: 0;
 }
 
 .table-hover > tbody > tr:hover {

@@ -170,7 +170,7 @@ class ajaxTable {
 	}
 
 	tableCreate() {
-		console.info("%ctableCreate", "color: #28a745");
+		console.info(`%ctableCreate`, `color:${this.colors.consoleInfo}`);
 
 		let self = this;
 		let table = this.element;

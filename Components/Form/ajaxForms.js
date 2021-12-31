@@ -282,7 +282,9 @@ class ajaxForm {
                     INPUT.classList.add("col-md-4");
                     switch (obj[key]["udt_name"]) {
                         case "bool":
+
                             var el = document.createElement("input");
+                            el.classList.add("form-check-input");
                             el.type = "checkbox";
                             break;
                         case "int2":
@@ -426,6 +428,15 @@ class ajaxForm {
             // }
         })
 
+    }
+
+    formCreateElement(HTMLInputElement) {
+        switch (HTMLInputElement) {
+            case "":
+                break;
+            default:
+                "";
+        }
     }
 }
 

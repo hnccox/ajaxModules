@@ -176,12 +176,12 @@ class ajaxTemplate {
 
 	templateCallback(element) {
 		console.info(`%ctemplateCallback`, `color:${this.colors.consoleWarn}`);
-		// if (this?._templateCallback?.functions) {
-		// 	let callbacks = this._templateCallback.functions;
-		// 	Object.keys(callbacks).forEach(function (value) {
-		// 		callbacks[value](element);
-		// 	})
-		// }
+		if (this?._templateCallback?.functions) {
+			let callbacks = this._templateCallback.functions;
+			Object.keys(callbacks).forEach(function (value) {
+				callbacks[value](element);
+			})
+		}
 	}
 
 	templateTabulate(response) {
@@ -233,7 +233,11 @@ class ajaxTemplate {
 var link = document.createElement('link');
 
 // set properties of link tag
-link.href = '/e107_plugins/ajaxModules/Components/Template/ajaxTemplates.css';
+//link.href = '/e107_plugins/ajaxModules/Components/Template/ajaxTemplates.css';
+// link.href = 'https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css';
+// link.href = 'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js';
+link.href = 'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css';
+
 link.rel = 'stylesheet';
 link.type = 'text/css';
 
