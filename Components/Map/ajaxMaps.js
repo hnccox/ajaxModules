@@ -823,6 +823,7 @@ class ajaxMap {
 
                 if (self._overlayGroups[layer]?.["markerLayer"]) {
                     self.tableCreate(layer);
+                    self.templateCreate(layer);
                 }
 
                 if (self._overlayMaps[layer]?.legendParams?.url && map.wmsLegend) {
@@ -834,12 +835,14 @@ class ajaxMap {
 
         })
 
-        var refresh;
+        var refresh;    // TODO: Stop another query until layerTabulate has completed!
         map.on('overlayadd', e => {
             console.info(`%coverlayadd`, `color:${this.colors.consoleInfo}`)
             if (map.hasLayer(overlayMaps[e.name]) && self._overlayMaps[e.name].layerType !== "TileLayer.WMS") {
                 if (_overlayGroups[e.name]?.["markerLayer"]) {
+                    // TODO: Not all markerLayers need tables and templates..
                     self.layerUpdate(e.name, self.tableCreate(e.name));
+                    self.templateCreate(e.name);
                 } else {
                     self.layerUpdate(e.name);
                 }
@@ -1165,8 +1168,9 @@ class ajaxMap {
         })
         // Object created - bind popup to layer, add to feature group
         map.on(L.Draw.Event.CREATED, function (event) {
-            var layer = event.layer;
-            var content = getPopupContent(layer);
+
+            var layer = event.layer,
+                content = getPopupContent(layer);
             if (content !== null) {
                 layer.bindPopup(content);
             }
@@ -1186,6 +1190,7 @@ class ajaxMap {
         })
         // Object(s) edited - update popups
         map.on(L.Draw.Event.EDITED, function (event) {
+
             var layers = event.layers,
                 content = null;
             layers.eachLayer(function (layer) {
@@ -1646,6 +1651,8 @@ class ajaxMap {
             div.appendChild(button);
             container.appendChild(div);
 
+        } else {
+            console.log(`%c#templateContainer already exists`, `color:${this.colors.consoleInfo}`)
         }
 
         /* Create the template element */
@@ -1658,6 +1665,7 @@ class ajaxMap {
         template.style.width = '100%';
         template.style.height = '100%';
 
+        // TODO: Get template from iframe and insert element..
         var iframe = document.createElement('iframe');
         iframe.src = '';
         iframe.style.width = '100%';
@@ -1684,7 +1692,8 @@ class ajaxMap {
 
         if (this.onMobile) {
             // Mobile screen size
-            this.templateCreate(layer)
+            return;
+            //this.templateCreate(layer)
 
         } else {
 
@@ -1855,7 +1864,7 @@ class ajaxMap {
             var element = container.querySelector(`#nav-${self.overlayMaps[layer]._leaflet_id}`).lastElementChild.lastElementChild;
             window["ajaxTables"][layer] = new ajaxTable(element, layer);
 
-            this.templateCreate(layer)
+            // this.templateCreate(layer)
 
         }
     }
