@@ -8,8 +8,11 @@ class ajaxTable {
 	constructor(element, index, tableOptions = {}) {
 		console.log("ajaxTable constructor");
 
-		element.dataset.key = index;
+		// key does NOT have to be index!
+		// If no key is set, automatically set it as index, else, use preset key
+		element.dataset.index = index;
 		element.setAttribute("id", `ajaxTables[${index}]`);
+		if (!element.dataset.key) { element.dataset.key = index }
 
 		while (element.firstChild) {
 			element.removeChild(element.firstChild);
@@ -49,52 +52,97 @@ class ajaxTable {
 
 	eventReceiver(e, i, origin) {
 		console.info(`%c${this.element.id} eventReceiver: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
+		// Do we need to make a database query?
 
 		if (this.selectedRows[i]) {
 			this.eventTransmitter(e, i, origin);
 			return;
 		}
 
-		if (!this.element.querySelector('tr[data-id="' + i + '"]')) {
-			this.eventTransmitter(e, i, origin);
-			return;
-		}
+		// if (!this.element.querySelector('tr[data-id="' + i + '"]')) {
+		// 	this.eventTransmitter(e, i, origin);
+		// 	return;
+		// }
 
 		let self = this;
-		var row = this.element.querySelector('tr[data-id="' + i + '"]');
+		var row = (this.element.querySelector('tr[data-id="' + i + '"]') ? this.element.querySelector('tr[data-id="' + i + '"]') : undefined);
 
 		const mouseover = () => {
 			//console.log(i);
-			row.style.backgroundColor = "#f5f5f5";
+			if (row) {
+				row.style.backgroundColor = "#f5f5f5";
+			}
 		}
 
 		const mouseout = () => {
 			//console.log(i);
-			row.style.backgroundColor = null;
+			if (row) {
+				row.style.backgroundColor = null;
+			}
 		}
 
 		const mousedown = () => {
 			//console.log(i);
-			row.style.backgroundColor = "rgb(255, 205, 0)";
+			if (row) {
+				row.style.backgroundColor = "rgb(255, 205, 0)";
+			}
+
 		}
 
 		const mouseup = () => {
 			//console.log(i);
-			row.style.backgroundColor = "rgb(255, 205, 0)";
+			if (row) {
+				row.style.backgroundColor = "rgb(255, 205, 0)";
+			}
 		}
 
 		const click = () => {
 			//console.log(i);
-			if (Object.keys(self.selectedRows).length > 0) {
-				Object.keys(self.selectedRows).forEach(function (key) {
-					self.rows[key].style.backgroundColor = null;
-					delete self.selectedRows[key];
-				})
+
+			let table = this.element;
+			let method = "GET";
+			let sql = {
+				"url": table.dataset.url,
+				"db": table.dataset.db,
+				"query": JSON.parse(jsonSQL.query.replace(table.dataset.query, [":uid"], [i]))
+			}
+			ajax(method, sql, this.tableTabulate.bind(this));
+
+			if (row) {
+				if (Object.keys(self.selectedRows).length > 0) {
+					Object.keys(self.selectedRows).forEach(function (key) {
+						self.rows[key].style.backgroundColor = null;
+						delete self.selectedRows[key];
+					})
+				}
+
+				row.style.backgroundColor = "rgb(255, 205, 0)";
+
+				function scrollIntoView(element, container) {
+					var containerHeight = container.offsetHeight;
+					var containerTop = container.scrollTop;
+					var containerBottom = containerTop + container.offsetHeight;
+					var elemTop = element.offsetTop;
+					var elemBottom = elemTop + element.offsetHeight;
+					if (elemTop < containerTop) {
+						container.scroll({
+							top: elemTop - (containerHeight / 2),
+							left: 0,
+							behavior: 'smooth'
+						})
+					} else if (elemBottom > containerBottom) {
+						container.scroll({
+							top: elemBottom - container.offsetHeight + (containerHeight / 2),
+							left: 0,
+							behavior: 'smooth'
+						})
+					}
+				}
+
+				scrollIntoView(row, table.parentNode);
+				this.selectedRows[i] = row;
 			}
 
-			row.style.backgroundColor = "rgb(255, 205, 0)";
-			row.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
-			this.selectedRows[i] = row;
 			this.eventTransmitter(e, i, origin);
 		}
 
@@ -128,49 +176,49 @@ class ajaxTable {
 			If event comes from child -> send to parent and (children - child)
 		*/
 
-		if (this.element.dataset.master && origin !== this.element.dataset.master) {
-			let parent = document.querySelector(`[id='${this.element.dataset.master}']`);
+		if (this.element.dataset.parent && origin !== this.element.dataset.parent) {
+			let parent = document.querySelector(`[id='${this.element.dataset.parent}']`);
 			console.log(`${this.element.id} -> ${parent.id}`);
-			switch(parent.dataset.ajax) {
+			switch (parent.dataset.ajax) {
 				case "map":
-					window["ajaxMaps"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+					window["ajaxMaps"][parent.dataset.index].eventReceiver(e, i, this.element.id);
 					break;
 				case "table":
-					window["ajaxTables"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+					window["ajaxTables"][parent.dataset.index].eventReceiver(e, i, this.element.id);
 					break;
 				case "template":
-					window["ajaxTemplates"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+					window["ajaxTemplates"][parent.dataset.index].eventReceiver(e, i, this.element.id);
 					break;
 				default:
 					break;
 			}
 		}
 
-		let childMaps = document.querySelectorAll(`[data-ajax='map'][data-master='${this.element.id}']`);
+		let childMaps = document.querySelectorAll(`[data-ajax='map'][data-parent='${this.element.id}']`);
 		childMaps.forEach((map) => {
 			if (map.id === origin) { return; }
 			console.log(`${this.element.id} -> ${map.id}`);
-			window["ajaxMaps"][map.dataset.key].eventReceiver(e, i, this.element.id);
+			window["ajaxMaps"][map.dataset.index].eventReceiver(e, i, this.element.id);
 		});
 
-		let childTables = document.querySelectorAll(`[data-ajax='table'][data-master='${this.element.id}']`);
+		let childTables = document.querySelectorAll(`[data-ajax='table'][data-parent='${this.element.id}']`);
 		childTables.forEach((table) => {
 			if (table.id === origin) { return; }
 			console.log(`${this.element.id} -> ${table.id}`);
-			window["ajaxTables"][table.dataset.key].eventReceiver(e, i, this.element.id);
+			window["ajaxTables"][table.dataset.index].eventReceiver(e, i, this.element.id);
 		});
 
-		let childTemplates = document.querySelectorAll(`[data-ajax='template'][data-master='${this.element.id}']`);
+		let childTemplates = document.querySelectorAll(`[data-ajax='template'][data-parent='${this.element.id}']`);
 		childTemplates.forEach((template) => {
 			if (template.id === origin) { return; }
 			console.log(`${this.element.id} -> ${template.id}`);
-			window["ajaxTemplates"][template.dataset.key].eventReceiver(e, i, this.element.id);
+			window["ajaxTemplates"][template.dataset.index].eventReceiver(e, i, this.element.id);
 		});
 
 	}
 
 	tableCreate() {
-		console.info(`%ctableCreate`, `color:${this.colors.consoleInfo}`);
+		console.info(`%ctableCreate: ${this.element.id}`, `color:${this.colors.consoleInfo}`);
 
 		let self = this;
 		let table = this.element;
@@ -241,7 +289,7 @@ class ajaxTable {
 		table.appendChild(thead);
 		table.appendChild(tbody);
 
-		if (!table.dataset.slave || table.dataset.slave != "1") {
+		if (!table.dataset.child || table.dataset.child != "1") {
 			var tablebuttons = document.createElement("th");
 			tablebuttons.classList.add("table-buttons");
 			var div = document.createElement("div");
@@ -312,7 +360,7 @@ class ajaxTable {
 		totalrecords.classList.add("totalrecords");
 		var cols;
 		switch (table.dataset.type) {
-			case "slave":
+			case "child":
 			case "relational":
 				totalrecords.setAttribute("colspan", table.dataset.columns.split(",").length);
 				cols = table.dataset.columns.split(",").length;
@@ -325,7 +373,7 @@ class ajaxTable {
 
 		for (var i = cols; i < columnArr.length; i++) {
 			var node = document.createElement("th");
-			if (!table.dataset.slave || table.dataset.slave != "1") {
+			if (!table.dataset.type != "slave") {
 				node.innerText = "...";
 			}
 			tfoot.lastElementChild.appendChild(node);
@@ -347,7 +395,7 @@ class ajaxTable {
 			tablebuttons.appendChild(button);
 		} else {
 			switch (table.dataset.type) {
-				case "slave":
+				case "child":
 				case "relational":
 					break;
 				default:
@@ -426,7 +474,7 @@ class ajaxTable {
 			});
 		}
 
-		if (!table.dataset.master) {
+		if (!table.dataset.parent || table.dataset.type == "relational") {
 			let method = "GET";
 			let sql = {
 				"url": table.dataset.url,
@@ -606,7 +654,7 @@ class ajaxTable {
 		table.dataset.totalrecords = totalrecords;
 		var limit = Object.keys(dataset).length || 0;
 		switch (table.dataset.type) {
-			case "slave":
+			case "child":
 				table.getElementsByClassName("totalrecords")[0].innerText = `Records listed: ${limit}`;
 				break;
 			case "relational":
@@ -763,8 +811,8 @@ class ajaxTable {
 		console.log("%ctableSort", "color:green");
 		let table = element.closest("table");
 
-		if (table.dataset.slave || table.dataset.slave == "1") {
-			//TODO: sort on master
+		if (table.dataset.child || table.dataset.child == "1") {
+			//TODO: sort on parent
 			return;
 		}
 		console.log(table.dataset.direction, element.dataset.value)
@@ -853,12 +901,12 @@ link.rel = 'stylesheet';
 link.type = 'text/css';
 
 // Loaded successfully
-link.onload = function() {
+link.onload = function () {
 	console.log('success');
 };
 
 // Loading failed
-link.onerror = function() {
+link.onerror = function () {
 	console.log('error');
 };
 

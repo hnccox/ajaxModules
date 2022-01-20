@@ -22,13 +22,16 @@
 	flex-direction: column;
 	position: relative;
 	width: 100%;
+	height: 100%;
+	max-height: calc(100vh - 56px);
 	border: 4px solid rgba(255, 205, 0, 1);
 }
 
 .square::after {
 	content: "";
-	display: block;
-	padding-bottom: calc(100% - 56px - 16px);
+	display: flex;
+	flex-direction: column;
+	padding-bottom: 100%;
 }
 
 .square > .map {
@@ -37,6 +40,10 @@
 	right: 0;
 	bottom: 0;
 	left: 0;
+}
+
+.square > nav {
+	display: none;
 }
 
 footer {

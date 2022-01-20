@@ -3,10 +3,13 @@
 /* Scrollable Table */
 div.table-scrollable {
 	/* margin-top: 2.67em; */
+	overflow-x: hidden;
+	overflow-y: scroll;
 }
 
 div.table-scrollable > table {
 	margin-bottom: 0;
+	height: 100%;
 }
 
 div.table-scrollable caption {
@@ -42,6 +45,8 @@ div.table-scrollable tfoot tr th {
 /* AjaxTable */
 table[data-ajax] {
 	width: 100%;
+	margin-top: 1em;
+	padding: 0 2em;
 }
 
 table[data-ajax] caption {
@@ -59,6 +64,10 @@ table[data-ajax] caption {
 table[data-ajax].table-scrollable > caption + thead tr th[data-column] {
 	position: sticky;
 	top: 82px;
+}
+
+table[data-ajax] thead th button {
+	display: none;
 }
 
 table[data-ajax] thead tr th[data-column] {

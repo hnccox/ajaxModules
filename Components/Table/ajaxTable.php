@@ -22,10 +22,9 @@ function ajaxTable($sqlParams, $tableParams, $tableProps = []) {
 	);
 
 	$output = '
-	<div>
+	<div class="table-scrollable">
 		<table class="'.$tableProps['class'].'" style="'.$tableProps['style'].'"
 			data-ajax="table"
-			data-parent=\''.$sqlParams['parent'].'\'
 			data-url=\''.$sqlParams['url'].'\' 
 			data-db=\''.$sqlParams['db'].'\' 
 			data-table=\''.$sqlParams['table'].'\'
@@ -33,6 +32,8 @@ function ajaxTable($sqlParams, $tableParams, $tableProps = []) {
 			data-query=\''.$sqlParams['query'].'\'
 			data-limit=\''.$sqlParams['limit'].'\'
 			data-page=\''.$sqlParams['offset'].'\'
+			data-parent=\''.$tableParams['parent'].'\'
+			data-key=\''.$tableParams['key'].'\'
 			data-caption=\''.$tableParams['caption'].'\'
 			data-columnnames=\''.$tableParams['columnNames'].'\'
 			data-columnsortable=\''.$tableParams['columnSortable'].'\'

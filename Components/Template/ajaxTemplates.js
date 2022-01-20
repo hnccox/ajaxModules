@@ -9,8 +9,10 @@ class ajaxTemplate {
 	constructor(element, index, templateOptions = {}) {
 		console.log("ajaxTemplate constructor");
 
-		element.dataset.key = index;
+		// key does NOT have to be index
+		element.dataset.index = index;
 		element.setAttribute("id", `ajaxTemplates[${index}]`);
+		if (!element.dataset.key) { element.dataset.key = index }
 
 		// while (element.firstChild) {
 		// 	element.removeChild(element.firstChild);
@@ -23,7 +25,7 @@ class ajaxTemplate {
 
 		this.index = index;
 		this.element = element;
-		
+
 		this.colors = {};
 		this.colors.consoleLog = '#FFFFFF';
 		this.colors.consoleInfo = '#28a745';
@@ -49,6 +51,7 @@ class ajaxTemplate {
 
 	eventReceiver(e, i, origin) {
 		console.info(`%c${this.element.id} eventReceiver: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
+		// Do we need to make a database query?
 
 		if (this.selectedDetail == i) {
 			this.eventTransmitter(e, i, origin);
@@ -75,6 +78,16 @@ class ajaxTemplate {
 
 		const click = () => {
 			//console.log(i);
+
+			let template = this.element;
+			let method = "GET";
+			let sql = {
+				"url": template.dataset.url,
+				"db": template.dataset.db,
+				"query": JSON.parse(jsonSQL.query.replace(template.dataset.query, [":uid"], [i]))
+			}
+			ajax(method, sql, this.templateTabulate.bind(this));
+
 			this.selectedDetail = i;
 			this.eventTransmitter(e, i, origin);
 		}
@@ -107,50 +120,50 @@ class ajaxTemplate {
 			If event comes from parent -> send to children
 			If event comes from child -> send to parent and (children - child)
 		*/
-	
-		if (this.element.dataset.master && origin !== this.element.dataset.master) {
-			let parent = document.querySelector(`[id='${this.element.dataset.master}']`);
+
+		if (this.element.dataset.parent && origin !== this.element.dataset.parent) {
+			let parent = document.querySelector(`[id='${this.element.dataset.parent}']`);
 			console.log(`${this.element.id} -> ${parent.id}`);
-			switch(parent?.dataset?.ajax) {
+			switch (parent?.dataset?.ajax) {
 				case "map":
-					window["ajaxMaps"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+					window["ajaxMaps"][parent.dataset.index].eventReceiver(e, i, this.element.id);
 					break;
 				case "table":
-					window["ajaxTables"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+					window["ajaxTables"][parent.dataset.index].eventReceiver(e, i, this.element.id);
 					break;
 				case "template":
-					window["ajaxTemplates"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+					window["ajaxTemplates"][parent.dataset.index].eventReceiver(e, i, this.element.id);
 					break;
 				default:
 					break;
 			}
 		}
 
-		let childMaps = document.querySelectorAll(`[data-ajax='map'][data-master='${this.element.id}']`);
+		let childMaps = document.querySelectorAll(`[data-ajax='map'][data-parent='${this.element.id}']`);
 		childMaps.forEach((map) => {
 			if (map.id === origin) { return; }
 			console.log(`${this.element.id} -> ${map.id}`);
-			window["ajaxMaps"][map.dataset.key].eventReceiver(e, i, this.element.id);
+			window["ajaxMaps"][map.dataset.index].eventReceiver(e, i, this.element.id);
 		});
 
-        let childTables = document.querySelectorAll(`[data-ajax='table'][data-master='${this.element.id}']`);
-        childTables.forEach((table) => {
-            if (table.id === origin) { return; }
+		let childTables = document.querySelectorAll(`[data-ajax='table'][data-parent='${this.element.id}']`);
+		childTables.forEach((table) => {
+			if (table.id === origin) { return; }
 			console.log(`${this.element.id} -> ${table.id}`);
-            window["ajaxTables"][table.dataset.key].eventReceiver(e, i, this.element.id);
-        });
+			window["ajaxTables"][table.dataset.index].eventReceiver(e, i, this.element.id);
+		});
 
-        let childTemplates = document.querySelectorAll(`[data-ajax='template'][data-master='${this.element.id}']`);
-        childTemplates.forEach((template) => {
-            if (template.id === origin) { return; }
+		let childTemplates = document.querySelectorAll(`[data-ajax='template'][data-parent='${this.element.id}']`);
+		childTemplates.forEach((template) => {
+			if (template.id === origin) { return; }
 			console.log(`${this.element.id} -> ${template.id}`);
-            window["ajaxTemplates"][template.dataset.key].eventReceiver(e, i, this.element.id);
-        });
+			window["ajaxTemplates"][template.dataset.index].eventReceiver(e, i, this.element.id);
+		});
 
 	}
 
 	templateCreate() {
-		console.info(`%ctemplateCreate`, `color:${this.colors.consoleInfo}`);
+		console.info(`%ctemplateCreate: ${this.element.id}`, `color:${this.colors.consoleInfo}`);
 
 		let self = this;
 		let template = this.element;
@@ -162,7 +175,7 @@ class ajaxTemplate {
 
 		//console.log(template);
 
-		if (!template.dataset.master) {
+		if (!template.dataset.parent) {
 			let method = "GET";
 			let sql = {
 				"url": template.dataset.url,
@@ -233,21 +246,20 @@ class ajaxTemplate {
 var link = document.createElement('link');
 
 // set properties of link tag
-//link.href = '/e107_plugins/ajaxModules/Components/Template/ajaxTemplates.css';
-// link.href = 'https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css';
-// link.href = 'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js';
-link.href = 'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css';
-
+link.href = '/e107_plugins/ajaxModules/Components/Template/ajaxTemplates.css';
 link.rel = 'stylesheet';
 link.type = 'text/css';
+// link.href = 'https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css';
+// link.href = 'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js';
+// link.href = 'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css';
 
 // Loaded successfully
-link.onload = function() {
+link.onload = function () {
 	console.log('success');
 };
 
 // Loading failed
-link.onerror = function() {
+link.onerror = function () {
 	console.log('error');
 };
 

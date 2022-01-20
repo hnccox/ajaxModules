@@ -29,8 +29,9 @@ class ajaxMap {
     constructor(element, index, mapOptions = {}) {
         console.log("ajaxMap constructor");
 
-        element.dataset.key = index;
+        element.dataset.index = index;
         element.setAttribute("id", `ajaxMaps[${index}]`);
+        if (!element.dataset.key) { element.dataset.key = index }
 
         while (element.firstChild) {
             element.removeChild(element.firstChild);
@@ -347,12 +348,9 @@ class ajaxMap {
         }
         // overlayMaps object structure:
         // overlayMaps = { layer: overlayGroups[layer], layer: overlayGroups[layer] }
-        L.control.scale({ position: 'bottomleft', maxWidth: 200 }).addTo(map);
-        L.control.wmsLegend({ maxWidth: 50 }).addTo(map);
-        //L.control.addLayer().addTo(map);
-
         L.control.layers(baseMaps, overlayMaps).addTo(map);
-        //if(geolocation) {
+
+        L.control.scale({ position: 'bottomleft', maxWidth: 200 }).addTo(map);
         L.control.locate({
             /** Position of the control */
             position: 'topright',
@@ -517,7 +515,7 @@ class ajaxMap {
             /** Display a pop-up when the user click on the inner marker. */
             showPopup: true,
             strings: {
-                title: "Show me where I am",
+                title: "Show and track my location",
                 text: "",
                 metersUnit: "meters",
                 feetUnit: "feet",
@@ -549,7 +547,14 @@ class ajaxMap {
                 this.options.followCompassStyle = L.extend({}, this.options.compassStyle, this.options.followCompassStyle);
             },
         }).addTo(map);
-        //}
+
+        if (this?._controls) {
+            let controls = this._controls;
+            Object.keys(controls).forEach(function (key) {
+                controls[key](map);
+            })
+        }
+
         L.Polyline.include({
             contains: function () { return; }
         });
@@ -714,135 +719,15 @@ class ajaxMap {
         this.drawnItems = drawnItems;
         let self = this;
 
-        // var div = document.createElement("div");
-        // div.classList.add("row");
-        // div.style.position = "absolute";
-        // div.style.bottom = "0px";
-        // div.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
-        // div.style.width = "100vw";
-        // div.style.marginLeft = "-25%";
-        // div.style.marginRight = "-25%";
-        // div.style.fontSize = "11px";
-
-        // var left = document.createElement("div");
-        // left.classList.add("col-xs-6");
-        // var output = document.createElement("output");
-        // output.setAttribute("id", "mapinfocoordinates");
-        // output.style.display = "inline-grid";
-        // output.style.padding = "0";
-        // output.style.fontSize = "inherit";
-        // left.appendChild(output);
-        // left.appendChild(document.createElement("BR"));
-
-        // var span = document.createElement("SPAN");
-        // span.innerText = "SW(Xmin,Ymin): ";
-        // left.appendChild(span);
-        // var output = document.createElement("output");
-        // output.setAttribute("id", "mapinfo_bounds_sw");
-        // output.style.display = "inline-grid";
-        // output.style.padding = "0";
-        // output.style.fontSize = "inherit";
-        // left.appendChild(output);
-        // left.appendChild(document.createElement("BR"));
-
-        // var span = document.createElement("SPAN");
-        // span.innerText = "NE(Xmax,Ymax): ";
-        // left.appendChild(span);
-        // var output = document.createElement("output");
-        // output.setAttribute("id", "mapinfo_bounds_ne");
-        // output.style.display = "inline-grid";
-        // output.style.padding = "0";
-        // output.style.fontSize = "inherit";
-        // left.appendChild(output);
-
-        // var center = document.createElement("div");
-        // center.classList.add("col-xs-4");
-        // center.appendChild(document.createElement("BR"));
-        // var span = document.createElement("SPAN");
-        // span.setAttribute("id", "totalrecords");
-        // span.innerText = "# Features in map view: ";
-        // center.appendChild(span);
-
-        // var right = document.createElement("div");
-        // right.classList.add("col-xs-2");
-        // right.style.margin = "3px 0px";
-        // var button = document.createElement("button");
-        // button.classList.add("btn", "btn-default", "pull-right");
-        // var span = document.createElement("SPAN");
-        // span.classList.add("glyphicon", "glyphicon-save");
-        // span.setAttribute("aria-hidden", "true");
-        // button.appendChild(span);
-        // button.addEventListener("click", function () {
-        //     this.exportData();
-        // });
-        // right.appendChild(button);
-        // div.appendChild(left);
-        // div.appendChild(center);
-        // div.appendChild(right);
-        // element.parentNode.parentNode.insertBefore(div, element.parentNode.nextElementSibling);
-
-        // var bounds = map.getBounds();
-        // var center = map.getCenter();
-        // var lat, lng, xmin, ymin, xmax, ymax, srid;
-        // lat = center.lat;
-        // lng = center.lng;
-        // xmin = bounds._southWest.lng;
-        // ymin = bounds._southWest.lat;
-        // xmax = bounds._northEast.lng;
-        // ymax = bounds._northEast.lat;
-        // srid = 4326;
-
-        // document.getElementById("mapinfo_bounds_ne").innerHTML = xmax + ", " + ymax;
-        // document.getElementById("mapinfo_bounds_sw").innerHTML = xmin + ", " + ymin;
-
-        // var fromProjection = 'EPSG:4326';
-        // switch (element.dataset.table) {
-        //     case "llg_it_geom":
-        //         var toProjection = 'EPSG:25833';
-        //         break;
-        //     case "llg_nl_geom":
-        //     case "c14_geom":
-        //         var toProjection = 'EPSG:28992';
-        //         break;
-        // }
-
-        // if (document.querySelector("mapinfocoordinates")) {
-
-        //     var projCoordNE = proj4(fromProjection, toProjection).forward([xmax, ymax]);
-        //     var projCoordSW = proj4(fromProjection, toProjection).forward([xmin, ymin]);
-
-        //     document.getElementById("mapinfo_bounds_ne").innerHTML = parseFloat(projCoordNE[0].toFixed(0)) + ", " + parseFloat(projCoordNE[1].toFixed(0));
-        //     document.getElementById("mapinfo_bounds_sw").innerHTML = parseFloat(projCoordSW[0].toFixed(0)) + ", " + parseFloat(projCoordSW[1].toFixed(0));
-
-        // }
-
-        // TODO: For each (hasLayer = true) then...
-        Object.keys(overlayMaps).forEach(function (layer) {
-            if (map.hasLayer(overlayMaps[layer]) && self._overlayMaps[layer].layerType !== "TileLayer.WMS") {
-                self.layerUpdate(layer);
-
-                if (self._overlayGroups[layer]?.["markerLayer"]) {
-                    self.tableCreate(layer);
-                    self.templateCreate(layer);
-                }
-
-                if (self._overlayMaps[layer]?.legendParams?.url && map.wmsLegend) {
-                    map.wmsLegend.addLegend(self._overlayMaps[layer]);
-                }
-            }
-
-
-
-        })
-
         var refresh;    // TODO: Stop another query until layerTabulate has completed!
         map.on('overlayadd', e => {
             console.info(`%coverlayadd`, `color:${this.colors.consoleInfo}`)
             if (map.hasLayer(overlayMaps[e.name]) && self._overlayMaps[e.name].layerType !== "TileLayer.WMS") {
                 if (_overlayGroups[e.name]?.["markerLayer"]) {
                     // TODO: Not all markerLayers need tables and templates..
-                    self.layerUpdate(e.name, self.tableCreate(e.name));
-                    self.templateCreate(e.name);
+                    self.layerUpdate(e.name);
+                    if (self._overlayMaps[e.name]?.tableParams?.addToTable !== "false") { self.tableCreate(e.name) };
+                    if (self._overlayMaps[e.name]?.templateParams?.addToTemplate !== "false") { self.templateCreate(e.name) };
                 } else {
                     self.layerUpdate(e.name);
                 }
@@ -873,7 +758,7 @@ class ajaxMap {
                     if (tableTab) { document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.removeChild(tableTab); }
                     if (tablePane) {
                         document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').removeChild(tablePane);
-                        delete window["ajaxTables"][tablePane.querySelector('table').dataset.key];
+                        delete window["ajaxTables"][tablePane.querySelector('table').dataset.index];
                     }
 
                     if (active) {
@@ -882,6 +767,7 @@ class ajaxMap {
                             document.getElementById(self.element.id).parentElement.removeChild(tableTabs.parentElement);
                             document.getElementById(self.element.id).parentElement.removeChild(tablePanes);
                             document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = '0';
+                            console.log('invalidateSize');
                             this.map.invalidateSize();
                         } else {
                             tableTabs.children[0].firstElementChild.classList.add('active');
@@ -957,7 +843,7 @@ class ajaxMap {
                     refresh = setTimeout(() => {
                         Object.keys(overlayMaps).forEach(function (key) {
                             if (map.hasLayer(overlayMaps[key])) {
-                                self.layerUpdate(key);
+                                self.layerUpdate(key);  // Update table?
                             }
                         })
                     }, 1000);
@@ -1225,6 +1111,8 @@ class ajaxMap {
             });
         })
 
+        this.mapCreate();
+
     } // End of constructor
 
     get Dataset() {
@@ -1344,6 +1232,7 @@ class ajaxMap {
     eventTransmitter(e, i, origin = this.element.id) {
         console.info(`%c${this.element.id} eventTransmitter: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
 
+        /* Mirror events to children -> only send click to siblings after selection */
         /* 
             If event comes from parent -> send to children
             If event comes from child -> send to parent and (children - child)
@@ -1356,48 +1245,76 @@ class ajaxMap {
             key = document.querySelector(`[id='${origin}']`).dataset.key;
         }
 
-        if (this.element.dataset.master && origin !== this.element.dataset.master) {
-            let parent = document.querySelector(`[id='${this.element.dataset.master}']`);
+        if (this.element.dataset.parent && origin !== this.element.dataset.parent) {
+            let parent = document.querySelector(`[id='${this.element.dataset.parent}']`);
             console.log(`${this.element.id} -> ${parent.id}`);
             switch (parent?.dataset?.ajax) {
                 case "map":
-                    window["ajaxMaps"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+                    window["ajaxMaps"][parent.dataset.index].eventReceiver(e, i, this.element.id);
                     break;
                 case "table":
-                    window["ajaxTables"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+                    window["ajaxTables"][parent.dataset.index].eventReceiver(e, i, this.element.id);
                     break;
                 case "template":
-                    window["ajaxTemplates"][parent.dataset.key].eventReceiver(e, i, this.element.id);
+                    window["ajaxTemplates"][parent.dataset.index].eventReceiver(e, i, this.element.id);
                     break;
                 default:
                     break;
             }
         }
 
-        let childMaps = document.querySelectorAll(`[data-ajax='map'][data-master='${this.element.id}'][data-key='${key}']`);
+        let childMaps = document.querySelectorAll(`[data-ajax='map'][data-parent='${this.element.id}'][data-key='${key}']`);
         childMaps.forEach((map) => {
             if (map.id === origin) { return; }
             console.log(`${this.element.id} -> ${map.id}`);
-            window["ajaxMaps"][map.dataset.key].eventReceiver(e, i, this.element.id);
+            window["ajaxMaps"][map.dataset.index].eventReceiver(e, i, this.element.id);
         });
 
-        let childTables = document.querySelectorAll(`[data-ajax='table'][data-master='${this.element.id}'][data-key='${key}']`);
+        let childTables = document.querySelectorAll(`[data-ajax='table'][data-parent='${this.element.id}'][data-key='${key}']`);
         childTables.forEach((table) => {
             if (table.id === origin) { return; }
             console.log(`${this.element.id} -> ${table.id}`);
-            window["ajaxTables"][table.dataset.key].eventReceiver(e, i, this.element.id);
+            window["ajaxTables"][table.dataset.index].eventReceiver(e, i, this.element.id);
         });
 
-        let childTemplates = document.querySelectorAll(`[data-ajax='template'][data-master='${this.element.id}'][data-key='${key}']`);
+        let childTemplates = document.querySelectorAll(`[data-ajax='template'][data-parent='${this.element.id}'][data-key='${key}']`);
         childTemplates.forEach((template) => {
             if (template.id === origin) { return; }
             console.log(`${this.element.id} -> ${template.id}`);
-            window["ajaxTemplates"][template.dataset.key].eventReceiver(e, i, this.element.id);
+            console.log(template.dataset.key)
+            window["ajaxTemplates"][template.dataset.index].eventReceiver(e, i, this.element.id);
         });
 
     }
 
-    mapCreate(element, index) {
+    mapCreate() {
+        console.info(`%cmapCreate`, `color:${this.colors.consoleInfo}`);
+
+        let self = this;
+        let map = this.map;
+        if (!document.querySelector('.fullscreen .leaflet.map')) {
+            this.element.style.width = `${this.element.parentElement.offsetWidth - 8}px`;
+            this.element.style.height = `${this.element.parentElement.offsetWidth - 8}px`;
+            this.element.nextElementSibling.style.marginTop = `${this.element.parentElement.offsetWidth - 8}px`;
+            //this.element.firstElementChild.style.marginBottom = `${this.element.parentElement.offsetWidth - 8}px`;
+        }
+        this.map.invalidateSize();
+
+        // TODO: For each (hasLayer = true) then...
+        Object.keys(self.overlayMaps).forEach(function (layer) {
+            if (self.map.hasLayer(self.overlayMaps[layer]) && self._overlayMaps[layer].layerType !== "TileLayer.WMS") {
+                self.layerUpdate(layer);
+
+                if (self._overlayGroups[layer]?.["markerLayer"]) {
+                    if (self._overlayMaps[layer]?.tableParams?.addToTable !== "false") { self.tableCreate(layer) };
+                    if (self._overlayMaps[layer]?.templateParams?.addToTemplate !== "false") { self.templateCreate(layer) };
+                }
+
+                if (self._overlayMaps[layer]?.legendParams?.url && self.map.wmsLegend) {
+                    self.map.wmsLegend.addLegend(self._overlayMaps[layer]);
+                }
+            }
+        })
     }
 
     mapCallback(element) {
@@ -1407,8 +1324,8 @@ class ajaxMap {
 
         if (this?._mapCallback?.functions) {
             let callbacks = this._mapCallback.functions;
-            Object.keys(callbacks).forEach(function (value) {
-                callbacks[value](element);
+            Object.keys(callbacks).forEach(function (key) {
+                callbacks[key](element);
             })
         }
     }
@@ -1563,9 +1480,9 @@ class ajaxMap {
                 storageHandler.storage.session.set(layer, 'cached');
             }
 
-            if (document.querySelector(`[data-ajax='table'][data-master='${self.element.id}'][data-key='${layer}']`)) {
-                let table = document.querySelector(`[data-ajax='table'][data-master='${self.element.id}'][data-key='${layer}']`);
-                window["ajaxTables"][table.dataset.key].tableTabulate(obj);
+            if (document.querySelector(`[data-ajax='table'][data-parent='${self.element.id}'][data-key='${layer}']`)) {
+                let table = document.querySelector(`[data-ajax='table'][data-parent='${self.element.id}'][data-key='${layer}']`);
+                window["ajaxTables"][table.dataset.index].tableTabulate(obj);
             }
 
             self._overlayMaps[layer].dataset = obj;
@@ -1591,7 +1508,7 @@ class ajaxMap {
             let sql = {
                 "url": self._overlayMaps[layer]?.layerParams.url || null,
                 "db": self._overlayMaps[layer]?.layerParams.db || null,
-                //"query": self._overlayMaps[value]?.layerParams.query
+                //"query": self._overlayMaps[key]?.layerParams.query
                 "query": jsonSQL.query.replace(self._overlayMaps[layer]?.layerParams.query, [":xmin", ":xmax", ":ymin", ":ymax", ":lat", ":lng"], [xmin, xmax, ymin, ymax, lat, lng])
             }
             ajax(method, sql, layerTabulate);
@@ -1653,12 +1570,13 @@ class ajaxMap {
 
         } else {
             console.log(`%c#templateContainer already exists`, `color:${this.colors.consoleInfo}`)
+            return;
         }
 
         /* Create the template element */
         var template = document.createElement('div');
         template.dataset.ajax = 'template';
-        template.dataset.master = `${self.element.id}`;
+        template.dataset.parent = `${self.element.id}`;
         template.dataset.layer = layer;
         template.dataset.layerId = self.overlayMaps[layer]._leaflet_id;
         template.classList.add('show', 'active');
@@ -1684,7 +1602,7 @@ class ajaxMap {
     }
 
     tableCreate(layer) {
-        
+
         let self = this;
 
         /* Select the container element */
@@ -1697,9 +1615,12 @@ class ajaxMap {
 
         } else {
 
-            document.getElementById(self.element.id).style.height = 'calc(60vh - 56px)';
-            document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = '56px';
-            this.map.invalidateSize();
+            if (container.classList.contains('fullscreen')) {
+                document.getElementById(self.element.id).style.height = 'calc(60vh - 56px)';
+                document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = '56px';
+                console.log('invalidateSize');
+                this.map.invalidateSize();
+            }
 
             /* Create new nav element if it doesn't already exist */
             if (!container.querySelector('nav')) {
@@ -1782,7 +1703,7 @@ class ajaxMap {
                 if (tableTab) { document.getElementById(self.element.id).parentElement.querySelector('nav').firstElementChild.removeChild(tableTab); }
                 if (tablePane) {
                     document.getElementById(self.element.id).parentElement.querySelector('div.tab-content').removeChild(tablePane);
-                    delete window["ajaxTables"][tablePane.querySelector('table').dataset.key];
+                    delete window["ajaxTables"][tablePane.querySelector('table').dataset.index];
                 }
 
                 if (active) {
@@ -1791,6 +1712,7 @@ class ajaxMap {
                         document.getElementById(self.element.id).parentElement.removeChild(tableTabs.parentElement);
                         document.getElementById(self.element.id).parentElement.removeChild(tablePanes);
                         document.querySelector('.leaflet-bottom.leaflet-left').style.bottom = '0';
+                        console.log('invalidateSize');
                         this.map.invalidateSize();
                     } else {
                         tableTabs.children[0].firstElementChild.classList.add('active');
@@ -1808,6 +1730,20 @@ class ajaxMap {
             container.querySelector('nav').firstElementChild.appendChild(li);
 
             // Create new tab-pane element
+
+            // If square, calculate height.
+            if (this.element.parentElement.classList.contains('square')) {
+
+                var height = this.element.parentElement.offsetHeight - this.element.offsetHeight - 8;
+                var tabContent = container.querySelector('#nav-tabContent')
+                tabContent.style.position = 'absolute';
+                tabContent.style.top = `${this.element.offsetHeight}px`;
+                tabContent.style.right = '0';
+                tabContent.style.bottom = '0';
+                tabContent.style.left = '0';
+                tabContent.style.height = `${height}px`;
+            }
+
             var div = document.createElement('div');
             div.classList.add('tab-pane', 'fade', 'show', 'active');
             div.id = `nav-${self.overlayMaps[layer]._leaflet_id}`;
@@ -1850,7 +1786,7 @@ class ajaxMap {
             //table.appendChild(caption);
             table.classList.add('ajaxTable', 'table-hover');
             table.dataset.ajax = "table";
-            table.dataset.master = self.element.id;
+            table.dataset.parent = self.element.id;
             table.dataset.query = JSON.stringify(self._overlayMaps[layer].layerParams.query);
             table.dataset.columns = self._overlayMaps[layer].layerParams.columns;
             table.dataset.columnnames = self._overlayMaps[layer].layerParams?.columnnames || self._overlayMaps[layer].layerParams.columns;
@@ -1962,6 +1898,394 @@ class ajaxMap {
 
     }
 
+    exportDataAsXML(element, data) {
+        console.log("exportDataAsXML");
+
+        let obj = JSON.parse(data);
+        if (obj.totalrecords == 0) { return; }
+        delete obj.totalrecords;
+
+        let dataObj = new Object();
+
+        /*
+        let slaveTables = document.querySelectorAll('[data-ajax="table"][data-parent="' + this.element.id + '"]');
+        slaveTables.forEach((table) => {
+            Tables[table.dataset.index].eventReceiver(e, i);
+        });
+        */
+
+        var el = {};
+        el.dataset = {};
+
+        el.dataset.url = "//wikiwfs.geo.uu.nl/e107_plugins/ajaxDBQuery/server/API.php";
+        el.dataset.db = "llg";
+        el.dataset.table = window.ajaxTables[1].element.dataset.table; // TODO: This should be a variable..
+        el.dataset.columns = "startdepth,depth,texture,organicmatter,plantremains,color,oxired,gravelcontent,median,calcium,ferro,groundwater,sample,soillayer,stratigraphy,remarks";
+        el.dataset.where = "borehole=':uid'";
+        el.dataset.order_by = "startdepth";
+        el.dataset.direction = "ASC";
+
+        function asyncAJAX(prop) {
+
+            return new Promise((resolve, reject) => {
+                //let [k, v] = Object.entries(obj)[prop];
+                var k = Object.keys(obj)[prop];
+                var v = obj[Object.keys(obj)[prop]];
+                var index = v[Object.keys(v)[0]];
+
+                //console.log([k,v]);
+                //console.log(k);
+                //console.log(v);
+                //console.log(index);
+
+                dataObj[k] = {};
+                dataObj[k].boreholeheader = {};
+                dataObj[k].boreholedata = {};
+
+                dataObj[k].boreholeheader = v;
+
+                el.dataset.where = "borehole='" + index + "'";
+
+                ajax(el, (element, data) => {
+                    let obj = JSON.parse(data);
+                    if (obj.totalrecords == 0) { reject(); return; }
+                    delete obj.totalrecords;
+                    dataObj[k].boreholedata = obj;
+                    resolve(dataObj[k]);
+                });
+
+            })
+        }
+
+        var createJSON = new Promise((resolve, reject) => {
+
+            const promises = [];
+            for (const prop in obj) {
+                promises.push(asyncAJAX(prop));
+            }
+
+            Promise.all(promises)
+                .then(obj => {
+                    resolve(obj)
+                }, reason => {
+                    console.log(reason)
+                }).catch(e => {
+                    console.log(e)
+                });
+
+        });
+
+        createJSON.then(obj => {
+
+            var XMLSchema = () => {
+                const xhr = new XMLHttpRequest(),
+                    method = "GET",
+                    url = "https://wikiwfs.geo.uu.nl/views/dataset/LLG/XMLSchema/LLG2012DataSet.xsd";
+
+                xhr.open(method, url, true);
+                xhr.setRequestHeader('Content-Type', 'text/xml');
+                xhr.overrideMimeType('application/xml');
+
+                xhr.onreadystatechange = function () {
+                    if (this.readyState === XMLHttpRequest.DONE) {
+                        if (this.status == 200) {
+                            createXML(this.responseXML);
+                        } else {
+                            console.log(this.statusText)
+                        }
+                    }
+                }
+
+                xhr.send(null);
+            }
+
+            var createXML = (schema) => {
+
+                var namespaceURI,
+                    qualifiedNameStr,
+                    documentType;
+                namespaceURI = "";
+                qualifiedNameStr = "";
+                documentType = null;
+
+                var XMLDocument = document.implementation.createDocument(namespaceURI, qualifiedNameStr, documentType);
+                var LLG2012Dataset = XMLDocument.createElement("LLG2012Dataset");
+                LLG2012Dataset.appendChild(XMLDocument.createTextNode("\n"));
+                LLG2012Dataset.setAttribute("xmlns", "http://tempuri.org/LLG2012DataSet.xsd");
+                LLG2012Dataset.appendChild(XMLDocument.importNode(schema.documentElement, true));
+
+                var BoreholeHeader = XMLDocument.createElement("BoreholeHeader");
+                var Borehole = XMLDocument.createElement("Borehole");
+                var Name = XMLDocument.createElement("Name");
+                var DrillDate = XMLDocument.createElement("DrillDate");
+                var Xco = XMLDocument.createElement("Xco");
+                var Yco = XMLDocument.createElement("Yco");
+                var CoordZone = XMLDocument.createElement("CoordZone");
+                var Elevation = XMLDocument.createElement("Elevation");
+                var DrillDepth = XMLDocument.createElement("DrillDepth");
+                var Geom = XMLDocument.createElement("Geom");
+                var Geol = XMLDocument.createElement("Geol");
+                var Soil = XMLDocument.createElement("Soil");
+                var Veget = XMLDocument.createElement("Veget");
+                var GroundWaterStep = XMLDocument.createElement("GroundWaterStep");
+                var ExtraRemarks = XMLDocument.createElement("ExtraRemarks");
+
+                var BoreholeData = XMLDocument.createElement("BoreholeData");
+                var Depth = XMLDocument.createElement("Depth");
+                var StartDepth = XMLDocument.createElement("StartDepth");
+                var Texture = XMLDocument.createElement("Texture");
+                var OrganicMatter = XMLDocument.createElement("OrganicMatter");
+                var PlantRemains = XMLDocument.createElement("PlantRemains");
+                var Color = XMLDocument.createElement("Color");
+                var OxiRed = XMLDocument.createElement("OxiRed");
+                var GravelContent = XMLDocument.createElement("GravelContent");
+                var Median = XMLDocument.createElement("Median");
+                var Calcium = XMLDocument.createElement("Calcium");
+                var Ferro = XMLDocument.createElement("Ferro");
+                var GroundWater = XMLDocument.createElement("GroundWater");
+                var Sample = XMLDocument.createElement("Sample");
+                var SoilLayer = XMLDocument.createElement("SoilLayer");
+                var Stratigraphy = XMLDocument.createElement("Stratigraphy");
+                var Remarks = XMLDocument.createElement("Remarks");
+
+                var GroupIdentity = XMLDocument.createElement("GroupIdentity");
+                var Year = XMLDocument.createElement("Year");
+                var Group = XMLDocument.createElement("Group");
+                var Names = XMLDocument.createElement("Names");
+                var LLGType = XMLDocument.createElement("LLGType");
+
+                Object.keys(obj).forEach(key => {
+                    // console.log(key);
+                    // console.log(obj[key]);  // value
+                    LLG2012Dataset.appendChild(XMLDocument.createTextNode("\n"))
+                    var BoreholeHeader = XMLDocument.createElement("BoreholeHeader")
+                    if (obj[key].boreholeheader.borehole) {
+                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
+                        BoreholeHeader.appendChild(Borehole.cloneNode(true))
+                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.borehole))
+                    }
+                    if (obj[key].boreholeheader.name) {
+                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
+                        BoreholeHeader.appendChild(Name.cloneNode(true))
+                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.name.substring(0, 20)))
+                    }
+                    if (obj[key].boreholeheader.drilldate) {
+                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
+                        BoreholeHeader.appendChild(DrillDate.cloneNode(true))
+                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.drilldate))
+                    }
+                    if (obj[key].boreholeheader.xco) {
+                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
+                        BoreholeHeader.appendChild(Xco.cloneNode(true))
+                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.xco))
+                    }
+                    if (obj[key].boreholeheader.yco) {
+                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
+                        BoreholeHeader.appendChild(Yco.cloneNode(true))
+                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.yco))
+                    }
+                    if (obj[key].boreholeheader.coordzone) {
+                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
+                        BoreholeHeader.appendChild(CoordZone.cloneNode(true))
+                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.coordzone))
+                    }
+                    if (obj[key].boreholeheader.elevation) {
+                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
+                        BoreholeHeader.appendChild(Elevation.cloneNode(true))
+                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.elevation))
+                    }
+                    if (obj[key].boreholeheader.drilldepth) {
+                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
+                        BoreholeHeader.appendChild(DrillDepth.cloneNode(true))
+                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.drilldepth))
+                    }
+                    if (obj[key].boreholeheader.geom) {
+                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
+                        BoreholeHeader.appendChild(Geom.cloneNode(true))
+                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.geom))
+                    }
+                    if (obj[key].boreholeheader.geol) {
+                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
+                        BoreholeHeader.appendChild(Geol.cloneNode(true))
+                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.geol))
+                    }
+                    if (obj[key].boreholeheader.soil) {
+                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
+                        BoreholeHeader.appendChild(Soil.cloneNode(true))
+                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.soil))
+                    }
+                    if (obj[key].boreholeheader.veget) {
+                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
+                        BoreholeHeader.appendChild(Veget.cloneNode(true))
+                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.veget))
+                    }
+                    if (obj[key].boreholeheader.groundwaterstep) {
+                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
+                        BoreholeHeader.appendChild(GroundWaterStep.cloneNode(true))
+                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.groundwaterstep))
+                    }
+                    if (obj[key].boreholeheader.extraremarks) {
+                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"))
+                        BoreholeHeader.appendChild(ExtraRemarks.cloneNode(true))
+                        BoreholeHeader.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.extraremarks))
+                    }
+
+                    Object.values(obj[key].boreholedata).forEach(value => {
+                        //console.log(value);
+                        //console.log(obj[key].boreholeheader.borehole);
+                        //console.log(obj[key].boreholedata);
+                        BoreholeHeader.appendChild(XMLDocument.createTextNode("\n\t"));
+                        var BoreholeData = XMLDocument.createElement("BoreholeData")
+                        if (obj[key].boreholeheader.borehole) {
+                            BoreholeData.appendChild(Borehole.cloneNode(true))
+                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(obj[key].boreholeheader.borehole))
+                        }
+                        if (value.depth) {
+                            BoreholeData.appendChild(Depth.cloneNode(true))
+                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.depth))
+                            BoreholeData.appendChild(StartDepth.cloneNode(true))
+                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.startdepth))
+                        }
+                        if (value.texture) {
+                            BoreholeData.appendChild(Texture.cloneNode(true))
+                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.texture))
+                        }
+                        if (value.organicmatter) {
+                            BoreholeData.appendChild(OrganicMatter.cloneNode(true))
+                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.organicmatter))
+                        }
+                        if (value.plantremains) {
+                            BoreholeData.appendChild(PlantRemains.cloneNode(true))
+                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.plantremains))
+                        }
+                        if (value.color) {
+                            BoreholeData.appendChild(Color.cloneNode(true))
+                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.color))
+                        }
+                        if (value.oxired) {
+                            BoreholeData.appendChild(OxiRed.cloneNode(true))
+                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.oxired))
+                        }
+                        if (value.gravelcontent) {
+                            BoreholeData.appendChild(GravelContent.cloneNode(true))
+                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.gravelcontent))
+                        }
+                        if (value.median) {
+                            BoreholeData.appendChild(Median.cloneNode(true))
+                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.median))
+                        }
+                        if (value.calcium) {
+                            BoreholeData.appendChild(Calcium.cloneNode(true))
+                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.calcium))
+                        }
+                        if (value.ferro) {
+                            BoreholeData.appendChild(Ferro.cloneNode(true))
+                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.ferro))
+                        }
+                        if (value.groundwater) {
+                            BoreholeData.appendChild(GroundWater.cloneNode(true))
+                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.groundwater))
+                        }
+                        if (value.sample) {
+                            BoreholeData.appendChild(Sample.cloneNode(true))
+                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.sample))
+                        }
+                        if (value.soillayer) {
+                            BoreholeData.appendChild(SoilLayer.cloneNode(true))
+                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.soillayer))
+                        }
+                        if (value.stratigraphy) {
+                            BoreholeData.appendChild(Stratigraphy.cloneNode(true))
+                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.stratigraphy))
+                        }
+                        if (value.remarks) {
+                            BoreholeData.appendChild(Remarks.cloneNode(true))
+                            BoreholeData.lastElementChild.appendChild(XMLDocument.createTextNode(value.remarks))
+                        }
+                        BoreholeHeader.appendChild(BoreholeData.cloneNode(true))
+
+                    })
+
+                    //console.log(Object.values(obj[key])[0]);
+                    //console.log(obj[key].boreholeheader);
+                    //console.log(Object.values(obj[key])[1]);
+                    //console.log(obj[key].boreholedata);
+                    BoreholeHeader.appendChild(XMLDocument.createTextNode("\n"))
+                    LLG2012Dataset.appendChild(BoreholeHeader.cloneNode(true))
+
+                });
+
+                var llgtype;
+                switch (Tables[1].element.dataset.table) {
+                    case "llg_nl_boreholedata":
+                        llgtype = "0";
+                        break;
+                    case "llg_it_boreholedata":
+                        llgtype = "2";
+                        break;
+                    default: llgtype = "0";
+                }
+                GroupIdentity.appendChild(XMLDocument.createTextNode("\n\t"))
+                GroupIdentity.appendChild(Year)
+                GroupIdentity.lastElementChild.appendChild(XMLDocument.createTextNode("9999"))
+                GroupIdentity.appendChild(XMLDocument.createTextNode("\n\t"))
+                GroupIdentity.appendChild(Group)
+                GroupIdentity.lastElementChild.appendChild(XMLDocument.createTextNode("99"))
+                GroupIdentity.appendChild(XMLDocument.createTextNode("\n\t"))
+                GroupIdentity.appendChild(Names)
+                GroupIdentity.lastElementChild.appendChild(XMLDocument.createTextNode("collection"))
+                GroupIdentity.appendChild(XMLDocument.createTextNode("\n\t"))
+                GroupIdentity.appendChild(LLGType)
+                GroupIdentity.lastElementChild.appendChild(XMLDocument.createTextNode(llgtype))
+                GroupIdentity.appendChild(XMLDocument.createTextNode("\n"))
+
+                LLG2012Dataset.appendChild(XMLDocument.createTextNode("\n"))
+                LLG2012Dataset.appendChild(GroupIdentity)
+                LLG2012Dataset.appendChild(XMLDocument.createTextNode("\n"))
+                XMLDocument.appendChild(LLG2012Dataset)
+
+                let file = new File(['<?xml version="1.0" standalone="yes"?>' + "\n" + (new XMLSerializer()).serializeToString(XMLDocument)], { type: 'text/xml' });
+                let url = URL.createObjectURL(file);
+                let elem = window.document.createElement('a');
+                elem.href = url;
+                elem.download = "LLGData-" + document.getElementById("mapinfo_bounds_sw").innerHTML.replace(", ", "_") + "-" + document.getElementById("mapinfo_bounds_ne").innerHTML.replace(", ", "_") + ".xml";
+                document.body.appendChild(elem);
+                elem.click();
+                document.body.removeChild(elem);
+                URL.revokeObjectURL(url); //Releases the resources
+            }
+
+            XMLSchema();
+
+        }, reason => {
+            console.log(reason)
+        }).catch(e => {
+            console.log(e)
+        });
+
+    }
+
 }
+
+// create new link tag
+var link = document.createElement('link');
+
+// set properties of link tag
+link.href = '/e107_plugins/ajaxModules/Components/Map/ajaxMaps.css';
+link.rel = 'stylesheet';
+link.type = 'text/css';
+
+// Loaded successfully
+link.onload = function () {
+    console.log('success');
+};
+
+// Loading failed
+link.onerror = function () {
+    console.log('error');
+};
+
+// append link element to html
+document.body.appendChild(link);
 
 export default ajaxMap;
