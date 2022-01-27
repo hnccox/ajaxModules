@@ -13,10 +13,6 @@
 	padding: 0 7px;
 }
 
-#layout-jumbotron-fullscreen {
-	overflow: hidden;
-}
-
 .square {
 	display: flex;
 	flex-direction: column;

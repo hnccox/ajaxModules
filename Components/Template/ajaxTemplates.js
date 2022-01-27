@@ -14,10 +14,9 @@ class ajaxTemplate {
 		element.setAttribute("id", `ajaxTemplates[${index}]`);
 		if (!element.dataset.key) { element.dataset.key = index }
 
-		// while (element.firstChild) {
-		// 	element.removeChild(element.firstChild);
-		// }
-		// TODO: Now import the template file..
+		while (element.firstChild) {
+			element.removeChild(element.firstChild);
+		}
 
 		for (const [key, value] of Object.entries(templateOptions)) {
 			this[key] = value;

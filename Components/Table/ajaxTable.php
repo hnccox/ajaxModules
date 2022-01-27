@@ -7,22 +7,22 @@ error_reporting(E_ALL);
 function ajaxTable($sqlParams, $tableParams, $tableProps = []) {
 
 	$sqlParams = array_merge(
-		array('direction' => '', 'offset' => 1, 'limit' => 20), 
+		array('direction' => '', 'offset' => 0, 'limit' => 20), 
 		$sqlParams
 	);
 
 	$tableParams = array_merge(
-		array('caption' => '', 'columnNames' => $sqlParams['columns'], 'preview' => 3, 'expanded' => false, 'href' => true, 'totalrecords' => true, 'add' => true),
+		array('caption' => '', 'columnNames' => $sqlParams['columns'], 'preview' => 3, 'expanded' => false, 'href' => true, 'totalrecords' => true, 'add' => false),
 		$tableParams
 	);
 
 	$tableProps = array_merge(
-		array('class' => 'table table-hover', 'style' => ''),
+		array('type' => '', 'height' => '100%', 'width' => '100%', 'class' => 'table table-hover', 'style' => ''),
 		$tableProps
 	);
 
 	$output = '
-	<div class="table-scrollable">
+	<div class="'.$tableProps['type'].'" style="width:'.$tableProps['width'].';height:'.$tableProps['height'].';">
 		<table class="'.$tableProps['class'].'" style="'.$tableProps['style'].'"
 			data-ajax="table"
 			data-url=\''.$sqlParams['url'].'\' 

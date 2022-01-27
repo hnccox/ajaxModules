@@ -1128,7 +1128,7 @@ class ajaxMap {
     }
 
     returnDataset(layer) {
-        return JSON.stringify(this._overlayMaps[layer].dataset);
+        return this._overlayMaps[layer].dataset;
     }
 
     eventReceiver(e, i, origin) {

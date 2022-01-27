@@ -8,8 +8,6 @@ class ajaxTable {
 	constructor(element, index, tableOptions = {}) {
 		console.log("ajaxTable constructor");
 
-		// key does NOT have to be index!
-		// If no key is set, automatically set it as index, else, use preset key
 		element.dataset.index = index;
 		element.setAttribute("id", `ajaxTables[${index}]`);
 		if (!element.dataset.key) { element.dataset.key = index }
@@ -47,7 +45,7 @@ class ajaxTable {
 	}
 
 	get Data() {
-		return JSON.parse(this.data);
+		return this.obj.data;
 	}
 
 	eventReceiver(e, i, origin) {

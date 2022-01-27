@@ -1,5 +1,7 @@
 'use strict'
 
+console.log('TEST');
+
 import { default as ajaxMap } from "/e107_plugins/ajaxModules/Components/Map/ajaxMaps.js";
 import { default as ajaxTable } from "/e107_plugins/ajaxModules/Components/Table/ajaxTables.js";
 import { default as ajaxTemplate } from "/e107_plugins/ajaxModules/Components/Template/ajaxTemplates.js";
