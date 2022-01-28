@@ -12,7 +12,7 @@ function ajaxTemplate($sqlParams, $templateParams, $templateProps = []) {
 	);
 
 	$templateParams = array_merge(
-		array('template' => ''),
+		array('template' => null),
 		$templateParams
 	);
 
@@ -21,8 +21,8 @@ function ajaxTemplate($sqlParams, $templateParams, $templateProps = []) {
 		$templateProps
 	);
 
-	$url = ($templateParams['template'] !== '' ? $templateParams['template'] : basename(substr($_SERVER["SCRIPT_NAME"],strrpos($_SERVER["SCRIPT_NAME"],"/") + 1 ), '.php').'.Template.html' );  
-	$lines_array = file($url);
+	$url = $templateParams['template'] ?: basename(substr($_SERVER["SCRIPT_NAME"],strrpos($_SERVER["SCRIPT_NAME"],"/") + 1 ), '.php').'.Template.html';  
+	$lines_array = file($url) ?: ['Template not found!'];
 	$lines_string = implode('', $lines_array);
 
 	$output = '
