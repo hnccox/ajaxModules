@@ -1,22 +1,19 @@
-
 'use strict';
 
 import { default as ajax } from "/e107_plugins/ajaxDBQuery/client/js/ajaxDBQuery.js";
-import { default as storageHandler } from "/e107_plugins/storageHandler/js/storageHandler.js";
 import { default as jsonSQL } from "/e107_plugins/jsonSQL/js/jsonSQL.js";
 
 class ajaxTemplate {
 	constructor(element, index, templateOptions = {}) {
 		console.log("ajaxTemplate constructor");
 
-		// key does NOT have to be index
 		element.dataset.index = index;
 		element.setAttribute("id", `ajaxTemplates[${index}]`);
 		if (!element.dataset.key) { element.dataset.key = index }
 
-		while (element.firstChild) {
-			element.removeChild(element.firstChild);
-		}
+		// while (element.firstChild) {
+		// 	element.removeChild(element.firstChild);
+		// }
 
 		for (const [key, value] of Object.entries(templateOptions)) {
 			this[key] = value;
@@ -197,7 +194,7 @@ class ajaxTemplate {
 	}
 
 	templateTabulate(response) {
-		console.info(`%ctemplateTabulate`, `color:${this.colors.consoleWarn}`);
+		console.info(`%ctemplateTabulate`, `color:${this.colors.consoleInfo}`);
 		if (response.type !== "success") return response;
 
 		let self = this;
@@ -212,20 +209,37 @@ class ajaxTemplate {
 		Object.keys(dataset).forEach(function (key) {
 			// Is our value a string or an object/array?
 			var NodeList = self.element.querySelectorAll('[data-variable="' + key + '"]');
-			//console.log(key, NodeList);
 			NodeList.forEach(function (el) {
-				if (el.tagName == "INPUT") {
-					if (el.type == "date") {
-						var date = new Date(Date.parse(dataset[key]));
-						dataset[key] = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
+
+				[...el.attributes].forEach((attr) => {
+					attr.value = attr.value.replace(':data-variable', dataset[key]);
+				});
+
+				if (el.hasAttribute('v-dateformat')) {
+					var date = new Date(Date.parse(dataset[key]));
+					switch (el.getAttribute('v-dateformat')) {
+						case "dd-mm-yyyy":
+							dataset[key] = ('0' + date.getDate()).slice(-2) + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + date.getFullYear();
+							break;
+						case "yyyy-mm-dd":
+							dataset[key] = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
+							break;
+						default:
+							dataset[key] = ('0' + date.getDate()).slice(-2) + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + date.getFullYear();
 					}
-					el.value = dataset[key];
-				} else {
-					if (key == "drilldate") {
-						var date = new Date(Date.parse(dataset[key]));
-						dataset[key] = ('0' + date.getDate()).slice(-2) + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + date.getFullYear();
-					}
-					el.innerHTML = dataset[key];
+				}
+
+				switch (el.tagName) {
+					case "A":
+						if (el.innerHTML === '') {
+							el.textContent = dataset[key];
+						}
+						break;
+					case "INPUT":
+						el.value = dataset[key];
+						break;
+					default:
+						el.textContent = dataset[key];
 				}
 			});
 

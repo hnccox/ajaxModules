@@ -1,7 +1,6 @@
 'use strict';
 
 import { default as ajax } from "/e107_plugins/ajaxDBQuery/client/js/ajaxDBQuery.js";
-import { default as storageHandler } from "/e107_plugins/storageHandler/js/storageHandler.js";
 import { default as jsonSQL } from "/e107_plugins/jsonSQL/js/jsonSQL.js";
 
 class ajaxTable {

@@ -17,12 +17,14 @@ function ajaxTable($sqlParams, $tableParams, $tableProps = []) {
 	);
 
 	$tableProps = array_merge(
-		array('type' => '', 'height' => '100%', 'width' => '100%', 'class' => 'table table-hover', 'style' => ''),
+		array('class' => 'table table-hover', 'style' => '', 'height' => '100%', 'width' => '100%'),
 		$tableProps
 	);
 
+	if ($tableParams['expanded'] == true) { $tableParams['expanded'] = "aria-expanded"; }
+
 	$output = '
-	<div class="'.$tableProps['type'].'" style="width:'.$tableProps['width'].';height:'.$tableProps['height'].';">
+	<div class="'.$tableProps['class'].'" style="width:'.$tableProps['width'].';height:'.$tableProps['height'].';">
 		<table class="'.$tableProps['class'].'" style="'.$tableProps['style'].'"
 			data-ajax="table"
 			data-url=\''.$sqlParams['url'].'\' 
@@ -31,7 +33,7 @@ function ajaxTable($sqlParams, $tableParams, $tableProps = []) {
 			data-columns=\''.$sqlParams['columns'].'\'
 			data-query=\''.$sqlParams['query'].'\'
 			data-limit=\''.$sqlParams['limit'].'\'
-			data-page=\''.$sqlParams['offset'].'\'
+			data-offset=\''.$sqlParams['offset'].'\'
 			data-parent=\''.$tableParams['parent'].'\'
 			data-key=\''.$tableParams['key'].'\'
 			data-caption=\''.$tableParams['caption'].'\'

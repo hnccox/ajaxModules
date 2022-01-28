@@ -1,21 +1,21 @@
 'use strict';
 
 import { default as ajax } from "/e107_plugins/ajaxDBQuery/client/js/ajaxDBQuery.js";
-import { default as storageHandler } from "/e107_plugins/storageHandler/js/storageHandler.js";
 import { default as jsonSQL } from "/e107_plugins/jsonSQL/js/jsonSQL.js";
 
 class ajaxMenu {
-    constructor(element, index, object = {}) {
+    constructor(element, index, menuOptions = {}) {
         console.log("ajaxMenu constructor");
 
         element.dataset.key = index;
         element.setAttribute("id", "ajaxMenus[" + index + "]");
+        if (!element.dataset.key) { element.dataset.key = index }
 
         while (element.firstChild) {
-			element.removeChild(element.firstChild);
-		}
+            element.removeChild(element.firstChild);
+        }
 
-        for (const [key, value] of Object.entries(object)) {
+        for (const [key, value] of Object.entries(menuOptions)) {
             this[key] = value;
         }
 
@@ -23,12 +23,12 @@ class ajaxMenu {
         this.element = element;
 
         this.colors = {};
-		this.colors.consoleLog = '#FFFFFF';
-		this.colors.consoleInfo = '#28a745';
-		this.colors.consoleWarn = '#FFFF00';
-		this.colors.consoleError = '#FF0000';
-		this.colors.consoleSuccess = '#28a745';
-        
+        this.colors.consoleLog = '#FFFFFF';
+        this.colors.consoleInfo = '#28a745';
+        this.colors.consoleWarn = '#FFFF00';
+        this.colors.consoleError = '#FF0000';
+        this.colors.consoleSuccess = '#28a745';
+
         let method = "GET";
         let sql = {
             "url": element.dataset.url,
@@ -63,7 +63,7 @@ class ajaxMenu {
     }
 
     menuTabulate(response) {
-        if(response.type !== "success") return response;
+        if (response.type !== "success") return response;
 
         console.log("menuTabulate");
         console.log(response);
@@ -72,12 +72,12 @@ class ajaxMenu {
         let self = this;
         let menu = this.element;
 
-		const data = response.data;
-		const obj = response.data.dataset;
-		const records = data["records"];
-		const totalrecords = data["totalrecords"];
-		delete data.records;
-		delete data.totalrecords;
+        const data = response.data;
+        const obj = response.data.dataset;
+        const records = data["records"];
+        const totalrecords = data["totalrecords"];
+        delete data.records;
+        delete data.totalrecords;
 
         var node = document.createElement("UL");
         //node.style.listStyleType = "none";
@@ -121,7 +121,7 @@ class ajaxMenu {
                         //     }
                         // })
                         for (const [i] of Object.keys(sql.query)) {
-                            switch(Object.keys(sql.query[i])[0]) {
+                            switch (Object.keys(sql.query[i])[0]) {
                                 case "where":
                                     sql.query[i].where[0]["identifier"] = "systemgrp";
                                     delete sql.query[i].where[0].value;
@@ -188,8 +188,8 @@ class ajaxMenu {
                         //     }
                         // })
                         for (const [i] of Object.keys(sql.query)) {
-                            
-                            switch(Object.keys(sql.query[i])[0]) {
+
+                            switch (Object.keys(sql.query[i])[0]) {
                                 case "where":
                                     sql.query[i].where[0]["identifier"] = "systemgrp";
                                     delete sql.query[i].where[0]["between"];
@@ -225,13 +225,13 @@ link.rel = 'stylesheet';
 link.type = 'text/css';
 
 // Loaded successfully
-link.onload = function() {
-	console.log('success');
+link.onload = function () {
+    console.log('success');
 };
 
 // Loading failed
-link.onerror = function() {
-	console.log('error');
+link.onerror = function () {
+    console.log('error');
 };
 
 // append link element to html
