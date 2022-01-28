@@ -1,12 +1,10 @@
 'use strict'
 
-console.log('TEST');
-
 import { default as ajaxMap } from "/e107_plugins/ajaxModules/Components/Map/ajaxMaps.js";
 import { default as ajaxTable } from "/e107_plugins/ajaxModules/Components/Table/ajaxTables.js";
 import { default as ajaxTemplate } from "/e107_plugins/ajaxModules/Components/Template/ajaxTemplates.js";
 import { default as ajaxForm } from "/e107_plugins/ajaxModules/Components/Form/ajaxForms.js";
-// import { default as storageHandler } from "/e107_plugins/storageHandler/js/storageHandler.js";
+import { default as ajaxMenu } from "/e107_plugins/ajaxModules/Components/Menu/ajaxMenus.js";
 
 (function () {
 
@@ -14,6 +12,7 @@ import { default as ajaxForm } from "/e107_plugins/ajaxModules/Components/Form/a
     window["ajaxTables"] = [];
     window["ajaxTemplates"] = [];
     window["ajaxForms"] = [];
+    window["ajaxMenus"] = [];
 
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
         var layer = "dark";
@@ -98,6 +97,23 @@ import { default as ajaxForm } from "/e107_plugins/ajaxModules/Components/Form/a
             window["ajaxForms"][key] = new ajaxForm(element, key, formOptions);
         })
 
+        const menus = document.querySelectorAll('div[data-ajax="menu"]');
+        menus.forEach((element, key) => {
+            var menuOptions = {
+                parseResponse: function (response) {
+                    const type = response.type;
+                    const data = response.data;
+                    const dataset = response.data.dataset;
+                    const records = data.records;
+                    const totalrecords = data.totalrecords;
+                    return { type, data, dataset, records, totalrecords };
+                },
+                _menuCallback: {
+                    functions: {}
+                }
+            }
+            window["ajaxMenus"][key] = new ajaxMenu(element, key, menuOptions);
+        })
     });
 
 })();
