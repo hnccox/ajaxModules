@@ -7,12 +7,12 @@ error_reporting(E_ALL);
 function ajaxTemplate($sqlParams, $templateParams, $templateProps = []) {
 
 	$sqlParams = array_merge(
-		array('direction' => '', 'offset' => 0, 'limit' => 1), 
+		array('offset' => 0, 'limit' => 1), 
 		$sqlParams
 	);
 
 	$templateParams = array_merge(
-		array('template' => '', 'columnNames' => $sqlParams['columns'], 'preview' => 3, 'expanded' => false, 'href' => true, 'totalrecords' => true, 'add' => true),
+		array('template' => ''),
 		$templateParams
 	);
 
@@ -28,7 +28,7 @@ function ajaxTemplate($sqlParams, $templateParams, $templateProps = []) {
 	$output = '
 	<div class="'.$templateProps['class'].'" style="'.$templateProps['style'].'"
 		data-ajax="template" 
-		data-parent=\''.$sqlParams['parent'].'\'
+		data-parent=\''.$templateParams['parent'].'\'
 		data-url=\''.$sqlParams['url'].'\' 
 		data-db=\''.$sqlParams['db'].'\' 
 		data-table=\''.$sqlParams['table'].'\'
