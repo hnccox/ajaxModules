@@ -6,12 +6,12 @@ error_reporting(E_ALL);
 
 function ajaxForm($sqlParams, $formParams, $formProps = []) {
 
-    $sqlParams = array_merge(
+	$sqlParams = array_merge(
 		array('db' => '', 'table' => '', 'columns' => '*', 'offset' => 0, 'limit' => 1), 
 		$sqlParams
 	);
 
-    $formParams = array_merge(
+	$formParams = array_merge(
 		array('caption' => '', 'columnNames' => $sqlParams['columns'], 'preview' => 3, 'expanded' => false, 'href' => true, 'totalrecords' => true, 'add' => true),
 		$formParams
 	);
@@ -21,7 +21,7 @@ function ajaxForm($sqlParams, $formParams, $formProps = []) {
 		$formProps
 	);
 
-    $output = '
+	$output = '
 	<div class="'.$formProps['class'].'" style="width:'.$formProps['width'].';height:'.$formProps['height'].';">
 		<form method="'.$formProps['method'].'" style="'.$formProps['style'].'"
 			data-ajax="form"
@@ -35,7 +35,7 @@ function ajaxForm($sqlParams, $formParams, $formProps = []) {
 		</form>
 	</div>';
 
-    return $output;
+	return $output;
 }
 
 return ajaxForm($sqlParams, $formParams, $formProps);
