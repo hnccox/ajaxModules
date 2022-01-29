@@ -17,23 +17,23 @@ function ajaxTable($sqlParams, $tableParams, $tableProps = []) {
 	);
 
 	$tableProps = array_merge(
-		array('class' => 'table table-hover', 'style' => '', 'height' => '100%', 'width' => '100%'),
+		array('type' => 'table-scrollable', 'class' => 'table table-hover', 'style' => '', 'height' => '100%', 'width' => '100%'),
 		$tableProps
 	);
 
 	if ($tableParams['expanded'] == true) { $tableParams['expanded'] = "aria-expanded"; }
 
 	$output = '
-	<div class="'.$tableProps['class'].'" style="width:'.$tableProps['width'].';height:'.$tableProps['height'].';">
+	<div class="'.$tableProps['type'].'" style="width:'.$tableProps['width'].';height:'.$tableProps['height'].';">
 		<table class="'.$tableProps['class'].'" style="'.$tableProps['style'].'"
 			data-ajax="table"
 			data-url=\''.$sqlParams['url'].'\' 
 			data-db=\''.$sqlParams['db'].'\' 
 			data-table=\''.$sqlParams['table'].'\'
 			data-columns=\''.$sqlParams['columns'].'\'
-			data-query=\''.$sqlParams['query'].'\'
 			data-limit=\''.$sqlParams['limit'].'\'
 			data-offset=\''.$sqlParams['offset'].'\'
+			data-query=\''.$sqlParams['query'].'\'
 			data-parent=\''.$tableParams['parent'].'\'
 			data-key=\''.$tableParams['key'].'\'
 			data-caption=\''.$tableParams['caption'].'\'
