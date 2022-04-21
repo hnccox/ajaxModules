@@ -495,6 +495,7 @@ class ajaxTable {
 
 	tableTabulate(response) {
 		console.info(`%ctableTabulate`, `color:${this.colors.consoleInfo}`);
+
 		if (response.type !== "success") return response;
 		// window.history.pushState({page: this.element.dataset.offset + 1}, "", "?page="+(parseInt(this.element.dataset.offset, 10) + 1));
 
@@ -527,7 +528,7 @@ class ajaxTable {
 					tbody = table.getElementsByTagName("tbody")[1];
 				}
 
-				if (table.getAttribute("aria-expanded") == "true") {
+				if (table.getAttribute("aria-expanded")) {
 					tbody.classList.add("collapse", "show");
 					tbody.setAttribute("aria-expanded", true)
 				} else {
@@ -660,36 +661,44 @@ class ajaxTable {
 			default:
 				table.getElementsByClassName("totalrecords")[0].innerText = `Total records: ${totalrecords}`;
 		}
-		if (table.dataset.limit) {
-			if (Math.floor(parseInt(table.dataset.totalrecords, 10) / parseInt(table.dataset.limit, 10)) === 0) {
-				table.getElementsByTagName("nav")[0].getElementsByTagName("div")[0].lastElementChild.classList.add("disabled");
-			}
 
-			if (table.hasAttribute("aria-expanded")) {
-
-				let nodes = table.getElementsByClassName("collapse");
-
-				for (let node of nodes) {
-					node.classList.add("show");
-					node.setAttribute("aria-expanded", true);
-				}
-
-				let expandbutton = tfoot.getElementsByClassName("table-buttons")[0].getElementsByTagName("button")[0];
-				expandbutton.classList.remove("btn-primary");
-				expandbutton.classList.add("btn-secondary");
-				expandbutton.firstElementChild.classList.remove("fa-chevron-down");
-				expandbutton.firstElementChild.classList.add("fa-chevron-up");
-			}
-
-			let limitbutton = tfoot.getElementsByClassName("table-buttons")[0].getElementsByTagName("button")[1];
-			limitbutton.getElementsByTagName("span")[0].innerText = table.dataset.limit;
-
+		if (records == totalrecords) {
+			
 			let navigation = tfoot.getElementsByClassName("navigation")[0];
-			if (parseInt(table.dataset.limit) > totalrecords) {
-				navigation.classList.add("hidden");
-			} else {
-				navigation.classList.remove("hidden");
+			navigation.classList.remove("show");
+			let tablebuttons = tfoot.getElementsByClassName("table-buttons")[0];
+			tablebuttons.innerHTML = ""
+
+		} else if (table.hasAttribute("aria-expanded")) {
+
+			let nodes = table.getElementsByClassName("collapse");
+
+			for (let node of nodes) {
+				node.classList.add("show");
+				node.setAttribute("aria-expanded", true);
 			}
+
+			let expandbutton = tfoot.getElementsByClassName("table-buttons")[0].getElementsByTagName("button")[0];
+			expandbutton.classList.remove("btn-primary");
+			expandbutton.classList.add("btn-secondary");
+			expandbutton.firstElementChild.classList.remove("fa-chevron-down");
+			expandbutton.firstElementChild.classList.add("fa-chevron-up");
+
+		}
+
+		if (Math.floor(parseInt(table.dataset.totalrecords, 10) / parseInt(table.dataset.limit, 10)) === 0) {
+			table.getElementsByTagName("nav")[0].getElementsByTagName("div")[0].lastElementChild.classList.add("disabled");
+		}
+
+		
+		let limitbutton = tfoot.getElementsByClassName("table-buttons")[0].getElementsByTagName("button")[1];
+		limitbutton.getElementsByTagName("span")[0].innerText = table.dataset.limit;
+
+		let navigation = tfoot.getElementsByClassName("navigation")[0];
+		if (parseInt(table.dataset.limit) > totalrecords) {
+			navigation.classList.add("hidden");
+		} else {
+			navigation.classList.remove("hidden");
 		}
 
 		let totalpages = Math.floor(parseInt(table.dataset.totalrecords, 10) / parseInt(table.dataset.limit, 10)) + 1;

@@ -75,6 +75,10 @@ class ajaxTemplate {
 		const click = () => {
 			//console.log(i);
 
+			if(!this.element.dataset.url) {
+				return;
+			}
+
 			let template = this.element;
 			let method = "GET";
 			let sql = {

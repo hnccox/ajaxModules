@@ -21,7 +21,7 @@ function ajaxTable($sqlParams, $tableParams, $tableProps = []) {
 		$tableProps
 	);
 
-	if ($tableParams['expanded'] == true) { $tableParams['expanded'] = "aria-expanded"; }
+	if ($tableParams['expanded']) { $tableParams['expanded'] = "aria-expanded"; }
 
 	$output = '
 	<div class="'.$tableProps['type'].'" style="width:'.$tableProps['width'].';height:'.$tableProps['height'].';">
