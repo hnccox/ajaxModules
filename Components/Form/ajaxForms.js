@@ -1,17 +1,20 @@
 'use strict';
 
 import { default as ajax } from "/e107_plugins/ajaxDBQuery/client/js/ajaxDBQuery.js";
+import { default as storageHandler } from "/e107_plugins/storageHandler/js/storageHandler.js";
+import { default as jsonSQL } from "/e107_plugins/jsonSQL/js/jsonSQL.js";
 
 class ajaxForm {
 	constructor(element, index, formOptions = {}) {
 		console.log("ajaxForm constructor");
 
 		element.dataset.key = index;
-		element.setAttribute("id", "Forms[" + index + "]");
+		element.setAttribute("id", `ajaxForms[${index}]`);
+		if (!element.dataset.key) { element.dataset.key = index }
 
-		while (element.firstChild) {
-			element.removeChild(element.firstChild);
-		}
+		// while (element.firstChild) {
+		// 	element.removeChild(element.firstChild);
+		// }
 
 		for (const [key, value] of Object.entries(formOptions)) {
 			this[key] = value;
@@ -20,15 +23,15 @@ class ajaxForm {
 		this.index = index;
 		this.element = element;
 
-		this.formCreate();
-
 		this.colors = {};
 		this.colors.consoleLog = '#FFFFFF';
 		this.colors.consoleInfo = '#28a745';
 		this.colors.consoleWarn = '#FFFF00';
 		this.colors.consoleError = '#FF0000';
 		this.colors.consoleSuccess = '#28a745';
-		
+
+		this.formCreate();
+
 	}
 
 	get Index() {
@@ -48,7 +51,7 @@ class ajaxForm {
 	}
 
 	eventReceiver(e, i, origin) {
-		console.info(`%c${this.element.id} eventReceiver: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
+		console.info(`% c${this.element.id} eventReceiver: % c${e.type}`, `color: ${this.colors.consoleInfo}`, `color: #fff`);
 
 		if (this.selectedForm == i) {
 			return;
@@ -97,7 +100,7 @@ class ajaxForm {
 	}
 
 	eventTransmitter(e, i, origin = this.element.id) {
-		console.info(`%c${this.element.id} eventTransmitter: %c${e.type}`, `color:${this.colors.consoleInfo}`, `color:#fff`);
+		console.info(`% c${this.element.id} eventTransmitter: % c${e.type}`, `color: ${this.colors.consoleInfo}`, `color: #fff`);
 
 		/* 
 			If event comes from parent -> send to children
@@ -106,100 +109,11 @@ class ajaxForm {
 
 	}
 
-	formCallback() {
-		console.log("formCallback");
-
-		// TO DO: send "update" event to Receivers
-		// let slaveTables = document.querySelectorAll('[data-ajax="table"][data-master="' + this.element.id + '"]');
-		// slaveTables.forEach((table) => {
-		//     table.dataset.where = this.element.dataset.where;
-		//     ajax(table, "GET", Tables[table.dataset.index].tableTabulate.bind(Tables[table.dataset.index]));
-		// });
-
-		if (this._formCallback.functions) {
-			let callbacks = this._formCallback.functions;
-			Object.keys(callbacks).forEach(function (value) {
-				callbacks[value]();
-			})
-		}
-	}
-
-	formTabulate(response) {
-
-		console.log("tableTabulate");
-
-		this.data = response.data;
-		let self = this;
-
-		const obj = response.data.dataset;
-		const records = obj["records"];
-		const totalrecords = obj["totalrecords"];  // Should always be "1"
-		delete obj.records;
-		delete obj.totalrecords;
-
-		console.log(obj[0]);
-		// If has releaseCandidate, we must query THAT table..
-
-		Object.keys(obj[0]).forEach(function (key) {
-			var elements = document.querySelectorAll(`[data-variable=${key}]`);
-			for (let element of elements) {
-				if (element instanceof HTMLInputElement) {
-					if (element.type === 'checkbox' && obj[0][key]) {
-						element.checked = true;
-					}
-					element.value = obj[0][key];
-				} else {
-					element.innerText = obj[0][key];
-				}
-
-			}
-		});
-
-		// let button = document.createElement("button");
-		// button.classList.add("btn", "btn-primary");
-		// button.innerText = "Submit";
-		// button.type = "submit";
-		// this.element.appendChild(button);
-
-		// element.lastElementChild.addEventListener('click', () => {
-
-		//     const elementList = document.querySelectorAll("input[data-variable]");
-		//     var query = "SET ";
-		//     elementList.forEach((element) => {
-		//         if (element.value != storageHandler.storage.local.get(element.dataset.variable)) {
-		//             if (element.innerText != "false" && storageHandler.storage.local.get(element.dataset.variable) != "false") {
-		//                 console.log(element.dataset.variable + ": " + element.value + "!=" + storageHandler.storage.local.get(element.dataset.variable));
-		//                 query = query + element.dataset.variable + "=" + element.value + ", ";
-		//             }
-		//         }
-		//     });
-
-		//     console.log(query.replace(/,\s*$/, ""));
-		//     // Update the RC table!
-		//     // Set releaseCandidate column boolean to true!
-
-		//     // Time to submit the changed variables!
-		//     // var xhr = new XMLHttpRequest();
-		//     // xhr.open("UPDATE", yourUrl, true);
-		//     // xhr.setRequestHeader('Content-Type', 'application/json');
-		//     // xhr.send(JSON.stringify({
-		//     // 	value: value
-		//     // }));
-
-		// })
-
-
-		// element.dataset.id = dataset[Object.keys(dataset)[0]];
-		// // TODO: undefined?
-		// this.data = data;
-		// this.formCallback(element);
-
-	}
-
 	formCreate() {
-		console.log("formCreate");
+		console.info(`%cformCreate: ${this.element.id}`, `color: ${this.colors.consoleInfo}`);
 
 		let self = this;
+		let form = this.element;
 
 		let method = "GET";
 		let sql = {
@@ -349,7 +263,7 @@ class ajaxForm {
 			}
 			// for (const property in dataset) {
 			//     for (const element in dataset[property]) {
-			//         console.log(`${element}: ${dataset[property][element]}`);
+			//         console.log(`${ element }: ${ dataset[property][element] }`);
 			//     }
 
 			// }
@@ -428,6 +342,40 @@ class ajaxForm {
 			// }
 		})
 
+		let button = document.createElement("button");
+		button.classList.add("btn", "btn-primary");
+		button.innerText = "Submit";
+		button.type = "submit";
+		this.element.appendChild(button);
+
+		this.element.lastElementChild.addEventListener('click', (event) => {
+			event.preventDefault();
+			console.log('SUBMIT');
+			const elementList = document.querySelectorAll("input[data-variable]");
+			var query = "SET ";
+			elementList.forEach((element) => {
+				if (element.value != storageHandler.storage.local.get(element.dataset.variable)) {
+					if (element.innerText != "false" && storageHandler.storage.local.get(element.dataset.variable) != "false") {
+						console.log(element.dataset.variable + ": " + element.value + "!=" + storageHandler.storage.local.get(element.dataset.variable));
+						query = query + element.dataset.variable + "=" + element.value + ", ";
+					}
+				}
+			});
+			console.log(query);
+			// console.log(query.replace(/,\s*$/, ""));
+
+			// Update the RC table!
+			// Set releaseCandidate column boolean to true!
+
+			// Time to submit the changed variables!
+			// var xhr = new XMLHttpRequest();
+			// xhr.open("UPDATE", yourUrl, true);
+			// xhr.setRequestHeader('Content-Type', 'application/json');
+			// xhr.send(JSON.stringify({
+			// 	value: value
+			// }));
+
+		})
 	}
 
 	formCreateElement(HTMLInputElement) {
@@ -438,7 +386,120 @@ class ajaxForm {
 				"";
 		}
 	}
+
+	formCallback(element) {
+		console.info(`%cformCallback`, `color:${this.colors.consoleWarn}`);
+		if (this._formCallback.functions) {
+			let callbacks = this._formCallback.functions;
+			Object.keys(callbacks).forEach(function (value) {
+				callbacks[value](element);
+			})
+		}
+		// TO DO: send "update" event to Receivers
+		// let slaveTables = document.querySelectorAll('[data-ajax="table"][data-master="' + this.element.id + '"]');
+		// slaveTables.forEach((table) => {
+		//     table.dataset.where = this.element.dataset.where;
+		//     ajax(table, "GET", Tables[table.dataset.index].tableTabulate.bind(Tables[table.dataset.index]));
+		// });
+	}
+
+	formTabulate(response) {
+		console.info(`%cformTabulate`, `color: ${this.colors.consoleInfo}`);
+		if (response.type !== "success") return response;
+
+		let self = this;
+		let form = this.element;
+
+		const obj = this.parseResponse?.(response) || response;
+		const data = obj.data;
+		const dataset = obj.dataset;
+		const records = obj?.records || 1;
+		const totalrecords = obj?.totalrecords || 1;  // Should always be "1"
+
+		// If has releaseCandidate, we must query THAT table..
+
+		Object.keys(dataset).forEach(function (key) {
+			var NodeList = self.element.querySelectorAll('[data-variable="' + key + '"]');
+			NodeList.forEach(function (el) {
+
+				[...el.attributes].forEach((attr) => {
+					attr.value = attr.value.replace(':data-variable', dataset[key]);
+				});
+
+				if (el.hasAttribute('v-dateformat')) {
+					var date = new Date(Date.parse(dataset[key]));
+					switch (el.getAttribute('v-dateformat')) {
+						case "dd-mm-yyyy":
+							dataset[key] = ('0' + date.getDate()).slice(-2) + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + date.getFullYear();
+							break;
+						case "yyyy-mm-dd":
+							dataset[key] = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
+							break;
+						default:
+							dataset[key] = ('0' + date.getDate()).slice(-2) + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + date.getFullYear();
+					}
+				}
+
+				switch (el.tagName) {
+					case "A":
+						if (el.innerHTML === '') {
+							el.textContent = dataset[key];
+						}
+						break;
+					case "INPUT":
+						el.value = dataset[key];
+						break;
+					default:
+						el.textContent = dataset[key];
+				}
+			});
+			// var elements = document.querySelectorAll(`[data-variable=${key}]`);
+			// for (let element of elements) {
+			// 	if (element instanceof HTMLInputElement) {
+			// 		if (element.type === 'checkbox' && obj[0][key]) {
+			// 			element.checked = true;
+			// 		}
+			// 		element.value = obj[0][key];
+			// 	} else {
+			// 		element.innerText = obj[0][key];
+			// 	}
+
+			// }
+		});
+
+		form.dataset.id = dataset[Object.keys(dataset)[0]];
+
+		// // TODO: undefined?
+		this.obj = obj;
+		this.formCallback(form);
+
+	}
+
 }
+
+// create new link tag
+var link = document.createElement('link');
+
+// set properties of link tag
+link.href = '/e107_plugins/ajaxModules/Components/Form/ajaxForms.css';
+link.rel = 'stylesheet';
+link.type = 'text/css';
+// link.href = 'https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css';
+// link.href = 'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js';
+// link.href = 'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css';
+
+// Loaded successfully
+link.onload = function () {
+	console.log('success');
+};
+
+// Loading failed
+link.onerror = function () {
+	console.log('error');
+};
+
+// append link element to html
+document.body.appendChild(link);
 
 export default ajaxForm;
 

@@ -33,16 +33,20 @@ class ajaxTemplate {
 
 	}
 
-	get Dataset() {
-		return this.element.dataset;
-	}
-
 	get Index() {
 		return this.index;
 	}
 
 	get Data() {
 		return JSON.parse(this.data);
+	}
+
+	get Query() {
+		return JSON.parse(this.query);
+	}
+
+	get Dataset() {
+		return this.element.dataset;
 	}
 
 	eventReceiver(e, i, origin) {
@@ -75,7 +79,7 @@ class ajaxTemplate {
 		const click = () => {
 			//console.log(i);
 
-			if(!this.element.dataset.url) {
+			if (!this.element.dataset.url) {
 				return;
 			}
 
