@@ -663,7 +663,7 @@ class ajaxTable {
 		}
 
 		if (records == totalrecords) {
-			
+
 			let navigation = tfoot.getElementsByClassName("navigation")[0];
 			navigation.classList.remove("show");
 			let tablebuttons = tfoot.getElementsByClassName("table-buttons")[0];
@@ -690,9 +690,11 @@ class ajaxTable {
 			table.getElementsByTagName("nav")[0].getElementsByTagName("div")[0].lastElementChild.classList.add("disabled");
 		}
 
-		
-		let limitbutton = tfoot.getElementsByClassName("table-buttons")[0].getElementsByTagName("button")[1];
-		limitbutton.getElementsByTagName("span")[0].innerText = table.dataset.limit;
+
+		let limitbutton = tfoot.getElementsByClassName("table-buttons")[0].getElementsByTagName("button")[1] ?? null;
+		if (limitbutton) {
+			limitbutton.getElementsByTagName("span")[0].innerText = table.dataset.limit;
+		}
 
 		let navigation = tfoot.getElementsByClassName("navigation")[0];
 		if (parseInt(table.dataset.limit) > totalrecords) {
